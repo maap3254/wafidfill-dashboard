@@ -46,6 +46,7 @@
             justify-content: flex-end;
             align-items: center;
             gap: 15px;
+            flex-wrap: wrap;
         }
 
         .last-updated {
@@ -221,6 +222,16 @@
             display: none;
         }
 
+        .warning {
+            background: #fff3cd;
+            color: #856404;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            display: none;
+        }
+
         .loading {
             text-align: center;
             padding: 50px;
@@ -240,6 +251,26 @@
             height: 4px;
             border-radius: 2px;
             transition: width 0.3s;
+        }
+
+        .api-url-input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        .test-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-left: 10px;
         }
 
         @media (max-width: 768px) {
@@ -268,10 +299,28 @@
             <button class="refresh-btn" onclick="refreshData()">🔄 Refresh Data</button>
         </div>
 
-        <div id="errorMsg" class="error"></div>
-        <div id="loadingMsg" class="loading" style="display: none;">Loading dashboard data...</div>
+        <!-- API URL Configuration (for testing) -->
+        <div style="background: white; padding: 15px; border-radius: 15px; margin-bottom: 20px;">
+            <label style="font-weight: bold; display: block; margin-bottom: 5px;">🔗 Google Apps Script URL:</label>
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="apiUrlInput" class="api-url-input" placeholder="https://script.google.com/macros/s/AKfycbz_y3mtDc4sInpXCmvwcJ9AE3HOVLOZYvnI6vTZsz1LGVg5_WDspucN1jQKUXA79bXE/exec" value="https://script.google.com/macros/s/AKfycbz_y3mtDc4sInpXCmvwcJ9AE3HOVLOZYvnI6vTZsz1LGVg5_WDspucN1jQKUXA79bXE/exec">
+                <button class="test-btn" onclick="testAPIConnection()">🔍 Test Connection</button>
+            </div>
+            <small style="color: #666;">Make sure your Apps Script is deployed as a Web App with access set to "Anyone"</small>
+        </div>
 
-        <div class="stats-grid" id="statsGrid"></div>
+        <div id="errorMsg" class="error"></div>
+        <div id="warningMsg" class="warning"></div>
+        <div id="loadingMsg" class="loading" style="display: none;">⏳ Loading dashboard data...</div>
+
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card"><div class="icon">📋</div><div class="value">--</div><div class="label">Total Passports</div></div>
+            <div class="stat-card"><div class="icon">🔗</div><div class="value">--</div><div class="label">Total Links</div></div>
+            <div class="stat-card"><div class="icon">🔄</div><div class="value">--</div><div class="label">Total Refills</div></div>
+            <div class="stat-card"><div class="icon">💰</div><div class="value">--</div><div class="label">Total Rate</div></div>
+            <div class="stat-card"><div class="icon">👥</div><div class="value">--</div><div class="label">Active Users (7d)</div></div>
+            <div class="stat-card"><div class="icon">🌍</div><div class="value">--</div><div class="label">Avg Links/Passport</div></div>
+        </div>
 
         <div class="charts-grid">
             <div class="chart-card">
@@ -293,7 +342,9 @@
                     <thead>
                         <tr><th>Passport Number</th><th>Username</th><th>Total Links</th><th>Refills</th><th>Rate</th><th>Status</th></tr>
                     </thead>
-                    <tbody id="topPassportsBody"></tbody>
+                    <tbody id="topPassportsBody">
+                        <tr><td colspan="6" style="text-align: center;">Loading...</td></tr>
+                    </tbody>
                 </table>
             </div>
         </div>
@@ -305,25 +356,84 @@
                     <thead>
                         <tr><th>Timestamp</th><th>Passport</th><th>Username</th><th>Country</th><th>Link Type</th><th>Rate</th></tr>
                     </thead>
-                    <tbody id="recentActivityBody"></tbody>
+                    <tbody id="recentActivityBody">
+                        <tr><td colspan="6" style="text-align: center;">Loading...</td></tr>
+                    </tbody>
                 </table>
             </div>
         </div>
     </div>
 
     <script>
-        // ============= IMPORTANT =============
-        // REPLACE THIS URL WITH YOUR GOOGLE APPS SCRIPT WEB APP URL
-        const API_URL = 'https://script.google.com/macros/s/AKfycbz_y3mtDc4sInpXCmvwcJ9AE3HOVLOZYvnI6vTZsz1LGVg5_WDspucN1jQKUXA79bXE/exec';
-        // =====================================
+        // Get API URL from input or localStorage
+        let API_URL = localStorage.getItem('wafidfill_api_url') || 'https://script.google.com/macros/s/AKfycbz_y3mtDc4sInpXCmvwcJ9AE3HOVLOZYvnI6vTZsz1LGVg5_WDspucN1jQKUXA79bXE/exec';
+        
+        // Set the input value
+        document.getElementById('apiUrlInput').value = API_URL;
         
         let charts = {};
 
+        // Save API URL to localStorage when changed
+        document.getElementById('apiUrlInput').addEventListener('change', function() {
+            API_URL = this.value;
+            localStorage.setItem('wafidfill_api_url', API_URL);
+            refreshData();
+        });
+
+        async function testAPIConnection() {
+            const testUrl = document.getElementById('apiUrlInput').value;
+            const errorDiv = document.getElementById('errorMsg');
+            const warningDiv = document.getElementById('warningMsg');
+            
+            errorDiv.style.display = 'none';
+            warningDiv.style.display = 'none';
+            
+            try {
+                console.log('Testing connection to:', testUrl);
+                const response = await fetch(`${testUrl}?action=getDashboardData`);
+                const text = await response.text();
+                console.log('Raw response:', text.substring(0, 500));
+                
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    warningDiv.innerHTML = `⚠️ Response is not valid JSON. This might be an HTML error page.<br><br>First 200 chars: ${text.substring(0, 200)}`;
+                    warningDiv.style.display = 'block';
+                    return;
+                }
+                
+                if (data.success) {
+                    errorDiv.innerHTML = '✅ Connection successful! Data is valid.';
+                    errorDiv.style.background = '#d4edda';
+                    errorDiv.style.color = '#155724';
+                    errorDiv.style.display = 'block';
+                    
+                    // Update API_URL and refresh
+                    API_URL = testUrl;
+                    localStorage.setItem('wafidfill_api_url', API_URL);
+                    refreshData();
+                    
+                    setTimeout(() => {
+                        errorDiv.style.display = 'none';
+                    }, 3000);
+                } else {
+                    errorDiv.innerHTML = `❌ API Error: ${data.error || 'Unknown error'}`;
+                    errorDiv.style.display = 'block';
+                }
+            } catch (error) {
+                errorDiv.innerHTML = `❌ Connection failed: ${error.message}<br><br>Make sure your Apps Script is deployed as a Web App with access set to "Anyone".`;
+                errorDiv.style.display = 'block';
+            }
+        }
+
         async function refreshData() {
             const errorDiv = document.getElementById('errorMsg');
+            const warningDiv = document.getElementById('warningMsg');
             const loadingDiv = document.getElementById('loadingMsg');
             
             errorDiv.style.display = 'none';
+            warningDiv.style.display = 'none';
             loadingDiv.style.display = 'block';
             
             try {
@@ -334,75 +444,80 @@
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
                 
-                const data = await response.json();
-                console.log('Data received:', data);
+                const text = await response.text();
+                console.log('Response received, length:', text.length);
                 
-                if (data.success) {
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    throw new Error('Invalid JSON response. Check your Apps Script deployment.');
+                }
+                
+                if (data.success && data.stats) {
                     updateDashboard(data);
                     document.getElementById('lastUpdated').innerHTML = `Last Updated: ${new Date().toLocaleString()}`;
                     errorDiv.style.display = 'none';
                 } else {
-                    throw new Error(data.error || 'Unknown error');
+                    throw new Error(data.error || 'Invalid response structure');
                 }
             } catch (error) {
                 console.error('Error:', error);
-                errorDiv.innerHTML = `⚠️ Error: ${error.message}. Make sure your Apps Script is deployed as a Web App.`;
+                errorDiv.innerHTML = `⚠️ Error: ${error.message}<br><br>
+                    <strong>Troubleshooting steps:</strong><br>
+                    1. Make sure your Apps Script is deployed as a Web App<br>
+                    2. Set access to "Anyone" in deployment settings<br>
+                    3. Click "Test Connection" button above to verify<br>
+                    4. Check the browser console (F12) for more details`;
                 errorDiv.style.display = 'block';
                 
-                // Try to load cached data
-                const cached = localStorage.getItem('dashboardCache');
-                if (cached) {
-                    const { data, timestamp } = JSON.parse(cached);
-                    if (Date.now() - timestamp < 300000) {
-                        updateDashboard(data);
-                        errorDiv.innerHTML += `<br>📦 Showing cached data from ${new Date(timestamp).toLocaleString()}`;
-                    }
-                }
+                // Show sample data for demo
+                showSampleData();
             } finally {
                 loadingDiv.style.display = 'none';
             }
         }
 
-        function updateDashboard(data) {
-            // Update stats cards
-            const statsGrid = document.getElementById('statsGrid');
-            statsGrid.innerHTML = `
-                <div class="stat-card">
-                    <div class="icon">📋</div>
-                    <div class="value">${data.stats.totalPassports || 0}</div>
-                    <div class="label">Total Passports</div>
-                </div>
-                <div class="stat-card">
-                    <div class="icon">🔗</div>
-                    <div class="value">${data.stats.totalLinks || 0}</div>
-                    <div class="label">Total Links</div>
-                </div>
-                <div class="stat-card">
-                    <div class="icon">🔄</div>
-                    <div class="value">${data.stats.totalRefills || 0}</div>
-                    <div class="label">Total Refills</div>
-                </div>
-                <div class="stat-card">
-                    <div class="icon">💰</div>
-                    <div class="value">${(data.stats.totalRate || 0).toFixed(2)}</div>
-                    <div class="label">Total Rate (GIFTCARD)</div>
-                </div>
-                <div class="stat-card">
-                    <div class="icon">👥</div>
-                    <div class="value">${data.stats.activeUsers || 0}</div>
-                    <div class="label">Active Users (7d)</div>
-                </div>
-                <div class="stat-card">
-                    <div class="icon">🌍</div>
-                    <div class="value">${(data.stats.avgLinksPerPassport || 0).toFixed(1)}</div>
-                    <div class="label">Avg Links/Passport</div>
-                </div>
-            `;
+        function showSampleData() {
+            const sampleData = {
+                success: true,
+                stats: {
+                    totalPassports: 0,
+                    totalLinks: 0,
+                    totalRefills: 0,
+                    totalRate: 0,
+                    activeUsers: 0,
+                    avgLinksPerPassport: 0
+                },
+                countryStats: {
+                    'Saudi Arabia': { passports: 0, totalLinks: 0, totalRate: 0, avgRefills: 0 },
+                    'Bahrain': { passports: 0, totalLinks: 0, totalRate: 0, avgRefills: 0 },
+                    'UAE': { passports: 0, totalLinks: 0, totalRate: 0, avgRefills: 0 },
+                    'Oman': { passports: 0, totalLinks: 0, totalRate: 0, avgRefills: 0 },
+                    'Kuwait': { passports: 0, totalLinks: 0, totalRate: 0, avgRefills: 0 },
+                    'Qatar': { passports: 0, totalLinks: 0, totalRate: 0, avgRefills: 0 }
+                },
+                dailyActivity: [],
+                topPassports: [],
+                recentActivity: []
+            };
+            updateDashboard(sampleData);
+        }
 
-            // Update charts
-            updateCountryChart(data.countryStats);
-            updateDailyChart(data.dailyActivity);
-            updateCountryStatsGrid(data.countryStats);
+        function updateDashboard(data) {
+            // Safely update stats cards with fallbacks
+            const stats = data.stats || {};
+            document.getElementById('totalPassports').textContent = stats.totalPassports || 0;
+            document.getElementById('totalLinks').textContent = stats.totalLinks || 0;
+            document.getElementById('totalRefills').textContent = stats.totalRefills || 0;
+            document.getElementById('totalRate').textContent = (stats.totalRate || 0).toFixed(2);
+            document.getElementById('activeUsers').textContent = stats.activeUsers || 0;
+            document.getElementById('avgLinksPerPassport').textContent = (stats.avgLinksPerPassport || 0).toFixed(1);
+
+            // Update charts with safe fallbacks
+            updateCountryChart(data.countryStats || {});
+            updateDailyChart(data.dailyActivity || []);
+            updateCountryStatsGrid(data.countryStats || {});
             updateTopPassportsTable(data.topPassports || []);
             updateRecentActivityTable(data.recentActivity || []);
             
@@ -416,7 +531,7 @@
         function updateCountryChart(countryStats) {
             const ctx = document.getElementById('countryChart').getContext('2d');
             const countries = Object.keys(countryStats);
-            const links = countries.map(c => countryStats[c].totalLinks || 0);
+            const links = countries.map(c => countryStats[c]?.totalLinks || 0);
             
             if (charts.countryChart) charts.countryChart.destroy();
             
@@ -434,8 +549,7 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: true,
-                    scales: { y: { beginAtZero: true, title: { display: true, text: 'Number of Links' } } },
-                    plugins: { legend: { position: 'top' } }
+                    scales: { y: { beginAtZero: true, title: { display: true, text: 'Number of Links' } } }
                 }
             });
         }
@@ -457,16 +571,13 @@
                         borderColor: '#667eea',
                         backgroundColor: 'rgba(102, 126, 234, 0.1)',
                         fill: true,
-                        tension: 0.4,
-                        pointBackgroundColor: '#667eea',
-                        pointBorderColor: '#fff',
-                        pointRadius: 4
+                        tension: 0.4
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: true,
-                    scales: { y: { beginAtZero: true, title: { display: true, text: 'Number of Links' } } }
+                    scales: { y: { beginAtZero: true } }
                 }
             });
         }
@@ -475,11 +586,14 @@
             const container = document.getElementById('countryStats');
             container.innerHTML = '';
             
-            for (const [country, stats] of Object.entries(countryStats)) {
+            const countries = ['Saudi Arabia', 'Bahrain', 'UAE', 'Oman', 'Kuwait', 'Qatar'];
+            
+            for (const country of countries) {
+                const stats = countryStats[country] || { passports: 0, totalLinks: 0, totalRate: 0 };
                 const passportCount = stats.passports || 0;
                 const linkCount = stats.totalLinks || 0;
                 const avgPerPassport = passportCount > 0 ? (linkCount / passportCount).toFixed(1) : 0;
-                const progressWidth = Math.min(100, (linkCount / (passportCount || 1)) * 20);
+                const progressWidth = passportCount > 0 ? Math.min(100, (linkCount / passportCount) * 20) : 0;
                 
                 container.innerHTML += `
                     <div class="country-card">
@@ -564,7 +678,7 @@
 
         function escapeHtml(str) {
             if (!str) return '';
-            return str.replace(/[&<>]/g, function(m) {
+            return String(str).replace(/[&<>]/g, function(m) {
                 if (m === '&') return '&amp;';
                 if (m === '<') return '&lt;';
                 if (m === '>') return '&gt;';
