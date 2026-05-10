@@ -346,7 +346,7 @@
             <div style="overflow-x: auto;">
                 <table id="activeRefillsTable">
                     <thead>
-                        <tr><th>Passport Number</th><th>Username</th><th>Refills Done</th><th>Total Refills</th><th>Next Refill In</th><th>Next Country</th><th>Status</th><th>Action</th></tr>
+                        <tr><th>Passport Number</th><th>User Email</th><th>Refills Done</th><th>Total Refills</th><th>Next Refill In</th><th>Next Country</th><th>Status</th><th>Action</th></tr>
                     </thead>
                     <tbody id="activeRefillsBody">
                         <tr><td colspan="8" style="text-align: center;">Loading active refills...</td></tr>
@@ -375,7 +375,7 @@
             <div style="overflow-x: auto;">
                 <table id="topPassportsTable">
                     <thead>
-                        <tr><th>Passport Number</th><th>Username</th><th>Total Links</th><th>Refills</th><th>Rate</th><th>Status</th><th>Action</th></tr>
+                        <tr><th>Passport Number</th><th>User Email</th><th>Total Links</th><th>Refills</th><th>Rate</th><th>Status</th><th>Action</th></tr>
                     </thead>
                     <tbody id="topPassportsBody"></tbody>
                 </table>
@@ -387,7 +387,7 @@
             <div style="overflow-x: auto;">
                 <table id="recentActivityTable">
                     <thead>
-                        <tr><th>Timestamp</th><th>Passport</th><th>Username</th><th>Country</th><th>Link Type</th><th>Rate</th></tr>
+                        <tr><th>Timestamp</th><th>Passport</th><th>User Email</th><th>Country</th><th>Link Type</th><th>Rate</th></tr>
                     </thead>
                     <tbody id="recentActivityBody"></tbody>
                 </table>
@@ -397,11 +397,10 @@
 
     <script>
         // ============= EXTENSION COMMUNICATION =============
-        // CHANGE THIS TO YOUR EXTENSION ID
-        // For first extension: 'mddnpfcdbipdaahiicahimipjmpnolbf'
-        // For second extension: 'bhghoamapcdpbohphigoooaddinpkbay'
         const EXTENSION_ID = 'mddnpfcdbipdaahiicahimipjmpnolbf';
-        // ===================================================
+        
+        // Cache for user emails
+        let userEmailCache = new Map();
 
         // Function to send message to Chrome extension
         function sendMessageToExtension(message) {
@@ -429,7 +428,6 @@
 
         // ============= GOOGLE APPS SCRIPT URL =============
         const API_URL = 'https://script.google.com/macros/s/AKfycbxXyqNuYBf2yTH304gVVjCs6D2kmh5ozWSdGb2NckrjCeV4KaHb9rhztGwWJLFPlgcU/exec';
-        // ===================================================
         
         let charts = {};
         let activeRefills = [];
@@ -440,6 +438,14 @@
                 const response = await sendMessageToExtension({ action: 'getAllIndividualRefillTimers' });
                 
                 if (response && response.success && response.timers) {
+                    // Fetch user emails for each passport
+                    for (const timer of response.timers) {
+                        if (!userEmailCache.has(timer.passport)) {
+                            const email = await getUserEmail(timer.passport);
+                            userEmailCache.set(timer.passport, email);
+                        }
+                        timer.userEmail = userEmailCache.get(timer.passport) || 'Unknown';
+                    }
                     activeRefills = response.timers;
                     updateActiveRefillsTable(activeRefills);
                     document.getElementById('activeRefillCount').textContent = activeRefills.length;
@@ -452,6 +458,40 @@
                 const tbody = document.getElementById('activeRefillsBody');
                 tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">⚠️ Extension not connected. Make sure the extension is installed and active.</td></tr>';
                 document.getElementById('activeRefillCount').textContent = '0';
+            }
+        }
+
+        // Function to get user email for a passport
+        async function getUserEmail(passportNumber) {
+            try {
+                // Try to get from recent activity first
+                const response = await fetch(`${API_URL}?action=getRecentActivity&limit=100`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.activities) {
+                        const activity = data.activities.find(a => a.passportNumber === passportNumber);
+                        if (activity && activity.username && activity.username !== 'Unknown') {
+                            return activity.username;
+                        }
+                    }
+                }
+                
+                // Try to get from top passports
+                const topResponse = await fetch(`${API_URL}?action=getTopPassports&limit=50`);
+                if (topResponse.ok) {
+                    const topData = await topResponse.json();
+                    if (topData.success && topData.passports) {
+                        const passport = topData.passports.find(p => p.passportNumber === passportNumber);
+                        if (passport && passport.username && passport.username !== 'Unknown') {
+                            return passport.username;
+                        }
+                    }
+                }
+                
+                return 'Unknown';
+            } catch (error) {
+                console.error('Error getting user email:', error);
+                return 'Unknown';
             }
         }
 
@@ -506,13 +546,14 @@
                 const progress = (timer.refillCount / timer.totalRefills) * 100;
                 const statusText = timer.isRetry ? '🔄 Retrying' : (timer.remainingSeconds > 0 ? '⏰ Waiting' : '⚡ Ready');
                 const statusClass = timer.isRetry ? 'status-active' : 'status-running';
+                const nextCountryDisplay = timer.nextCountry || timer.currentCycleCountry || 'Calculating...';
                 
                 row.insertCell(0).innerHTML = `<strong>${escapeHtml(timer.passport)}</strong>`;
-                row.insertCell(1).textContent = 'Loading...';
+                row.insertCell(1).innerHTML = `<span style="font-size: 12px;">${escapeHtml(timer.userEmail || 'Loading...')}</span>`;
                 row.insertCell(2).innerHTML = `${timer.refillCount}/${timer.totalRefills} <div class="progress-bar" style="margin-top: 5px;"><div class="progress-fill" style="width: ${progress}%;"></div></div>`;
                 row.insertCell(3).textContent = timer.totalRefills;
                 row.insertCell(4).innerHTML = `<span style="font-weight: 600; ${timer.remainingSeconds < 60 ? 'color: #dc3545;' : ''}">${timeDisplay}</span>`;
-                row.insertCell(5).textContent = timer.nextCountry || 'Unknown';
+                row.insertCell(5).innerHTML = `<strong>${escapeHtml(nextCountryDisplay)}</strong>`;
                 row.insertCell(6).innerHTML = `<span class="status-badge ${statusClass}">${statusText}</span>`;
                 row.insertCell(7).innerHTML = `<button class="stop-btn" onclick="stopRefill('${escapeHtml(timer.passport)}')">🛑 Stop</button>`;
             });
@@ -624,7 +665,6 @@
 
         function updateCountryChart(countryStats) {
             const ctx = document.getElementById('countryChart').getContext('2d');
-            // Only show Saudi Arabia, Bahrain, UAE, Oman
             const allowedCountries = ['Saudi Arabia', 'Bahrain', 'UAE', 'Oman'];
             const countries = allowedCountries.filter(c => countryStats[c]);
             const links = countries.map(c => countryStats[c]?.totalLinks || 0);
@@ -686,12 +726,11 @@
             const container = document.getElementById('countryStats');
             container.innerHTML = '';
             
-            // Only show Saudi Arabia, Bahrain, UAE, Oman
             const allowedCountries = ['Saudi Arabia', 'Bahrain', 'UAE', 'Oman'];
             
             for (const country of allowedCountries) {
-                const stats = countryStats[country] || { passports: 0, totalLinks: 0, totalRate: 0 };
-                const passportCount = stats.passports || 0;
+                const stats = countryStats[country] || { passportsCount: 0, totalLinks: 0, totalRate: 0 };
+                const passportCount = stats.passportsCount || stats.passports || 0;
                 const linkCount = stats.totalLinks || 0;
                 const avgPerPassport = passportCount > 0 ? (linkCount / passportCount).toFixed(1) : 0;
                 const progressWidth = Math.min(100, (linkCount / (passportCount || 1)) * 20);
@@ -735,7 +774,7 @@
             passports.slice(0, 20).forEach(p => {
                 const row = tbody.insertRow();
                 row.insertCell(0).innerHTML = `<strong>${escapeHtml(p.passportNumber)}</strong>`;
-                row.insertCell(1).textContent = p.username || 'Unknown';
+                row.insertCell(1).innerHTML = `<span style="font-size: 12px;">${escapeHtml(p.username || 'Unknown')}</span>`;
                 row.insertCell(2).textContent = p.totalLinks || 0;
                 row.insertCell(3).textContent = p.refillCount || 0;
                 row.insertCell(4).textContent = p.rate || 'N/A';
@@ -757,7 +796,7 @@
                 const row = tbody.insertRow();
                 row.insertCell(0).textContent = new Date(activity.timestamp).toLocaleString();
                 row.insertCell(1).innerHTML = `<strong>${escapeHtml(activity.passportNumber)}</strong>`;
-                row.insertCell(2).textContent = activity.username || 'Unknown';
+                row.insertCell(2).innerHTML = `<span style="font-size: 12px;">${escapeHtml(activity.username || 'Unknown')}</span>`;
                 row.insertCell(3).textContent = activity.country || 'N/A';
                 row.insertCell(4).innerHTML = activity.isOriginal ? 
                     '<span class="status-badge status-active">Original</span>' : 
