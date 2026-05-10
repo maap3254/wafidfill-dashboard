@@ -39,6 +39,38 @@
             opacity: 0.9;
         }
 
+        .admin-info {
+            background: rgba(255,255,255,0.15);
+            border-radius: 15px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .admin-info-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: white;
+            font-size: 0.9rem;
+        }
+
+        .admin-info-item .label {
+            opacity: 0.8;
+        }
+
+        .admin-info-item .value {
+            font-weight: 600;
+            background: rgba(255,255,255,0.2);
+            padding: 4px 12px;
+            border-radius: 20px;
+        }
+
         .last-updated-bar {
             text-align: right;
             margin-bottom: 20px;
@@ -320,6 +352,10 @@
             .header h1 {
                 font-size: 1.5rem;
             }
+            .admin-info {
+                flex-direction: column;
+                align-items: flex-start;
+            }
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -329,6 +365,22 @@
         <div class="header">
             <h1>📊 WafidFill Monitoring Dashboard</h1>
             <p>Real-time statistics for passport processing and payment links</p>
+        </div>
+
+        <!-- Admin Info Section -->
+        <div class="admin-info" id="adminInfo">
+            <div class="admin-info-item">
+                <span class="label">📧 Admin Email:</span>
+                <span class="value" id="adminEmail">Loading...</span>
+            </div>
+            <div class="admin-info-item">
+                <span class="label">🆔 Extension ID:</span>
+                <span class="value" id="extensionIdDisplay">Loading...</span>
+            </div>
+            <div class="admin-info-item">
+                <span class="label">🔌 Extension Status:</span>
+                <span class="value" id="extensionStatus">Checking...</span>
+            </div>
         </div>
 
         <div class="last-updated-bar">
@@ -346,10 +398,10 @@
             <div style="overflow-x: auto;">
                 <table id="activeRefillsTable">
                     <thead>
-                        <tr><th>Passport Number</th><th>Name</th><th>Refills Done</th><th>Total Refills</th><th>Next Refill In</th><th>Next Country</th><th>Status</th><th>Action</th></tr>
+                        <tr><th>Passport Number</th><th>User Email</th><th>Refills Done</th><th>Total Refills</th><th>Next Refill In</th><th>Next Country</th><th>Status</th><th>Action</th></tr>
                     </thead>
                     <tbody id="activeRefillsBody">
-                        <tr><td colspan="8" style="text-align: center;">Loading active refills...</td></tr>
+                        <tr><td colspan="8" style="text-align: center;">Loading active refills......</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -426,11 +478,94 @@
             });
         }
 
+        // Function to get admin email from extension
+        async function getAdminEmail() {
+            try {
+                // Try to get from extension storage via background
+                const response = await sendMessageToExtension({ action: 'getAdminInfo' });
+                if (response && response.success && response.email) {
+                    return response.email;
+                }
+                
+                // Fallback: Try to get from localStorage concept
+                const storageResponse = await sendMessageToExtension({ action: 'getUserSettings' });
+                if (storageResponse && storageResponse.success && storageResponse.email) {
+                    return storageResponse.email;
+                }
+                
+                return 'Not configured';
+            } catch (error) {
+                console.error('Error getting admin email:', error);
+                return 'Error fetching';
+            }
+        }
+
+        // Function to get extension ID
+        async function getExtensionId() {
+            try {
+                const response = await sendMessageToExtension({ action: 'getExtensionId' });
+                if (response && response.success && response.extensionId) {
+                    return response.extensionId;
+                }
+                return EXTENSION_ID;
+            } catch (error) {
+                return EXTENSION_ID;
+            }
+        }
+
+        // Function to check extension status
+        async function checkExtensionStatus() {
+            try {
+                const response = await sendMessageToExtension({ action: 'ping' });
+                if (response && response.status === 'active') {
+                    return '✅ Connected';
+                }
+                return '❌ Not Connected';
+            } catch (error) {
+                return '❌ Not Connected';
+            }
+        }
+
+        // Load admin info
+        async function loadAdminInfo() {
+            const adminEmailSpan = document.getElementById('adminEmail');
+            const extensionIdSpan = document.getElementById('extensionIdDisplay');
+            const extensionStatusSpan = document.getElementById('extensionStatus');
+            
+            // Get admin email
+            const adminEmail = await getAdminEmail();
+            adminEmailSpan.textContent = adminEmail;
+            
+            // Get extension ID
+            const extId = await getExtensionId();
+            extensionIdSpan.textContent = extId;
+            
+            // Check status
+            const status = await checkExtensionStatus();
+            extensionStatusSpan.textContent = status;
+            if (status === '✅ Connected') {
+                extensionStatusSpan.style.background = '#28a745';
+            } else {
+                extensionStatusSpan.style.background = '#dc3545';
+            }
+        }
+
         // ============= GOOGLE APPS SCRIPT URL =============
         const API_URL = 'https://script.google.com/macros/s/AKfycbxXyqNuYBf2yTH304gVVjCs6D2kmh5ozWSdGb2NckrjCeV4KaHb9rhztGwWJLFPlgcU/exec';
         
         let charts = {};
         let activeRefills = [];
+
+        // Country cycle order for Next Country detection
+        const COUNTRY_CYCLE = ['Saudi Arabia', 'Bahrain', 'UAE', 'Oman'];
+
+        function getNextCountry(currentCountry, originalCountry) {
+            if (!currentCountry) return originalCountry || 'Saudi Arabia';
+            const currentIndex = COUNTRY_CYCLE.indexOf(currentCountry);
+            if (currentIndex === -1) return originalCountry || 'Saudi Arabia';
+            const nextIndex = (currentIndex + 1) % COUNTRY_CYCLE.length;
+            return COUNTRY_CYCLE[nextIndex];
+        }
 
         // Function to refresh active refills from extension
         async function refreshActiveRefills() {
@@ -438,13 +573,32 @@
                 const response = await sendMessageToExtension({ action: 'getAllIndividualRefillTimers' });
                 
                 if (response && response.success && response.timers) {
-                    // Fetch user emails for each passport
+                    // Fetch user emails for each passport and determine next country
                     for (const timer of response.timers) {
                         if (!userEmailCache.has(timer.passport)) {
                             const email = await getUserEmail(timer.passport);
                             userEmailCache.set(timer.passport, email);
                         }
                         timer.userEmail = userEmailCache.get(timer.passport) || 'Unknown';
+                        
+                        // Calculate next country based on original travel country and current refill count
+                        // Get original travel country from timer data
+                        const originalCountry = timer.originalTravelCountry || 'Saudi Arabia';
+                        const nextRefillNumber = timer.refillCount + 1;
+                        
+                        // Calculate next country based on refill cycle
+                        let nextCountry = originalCountry;
+                        if (nextRefillNumber > 0) {
+                            let tempCountry = originalCountry;
+                            for (let i = 0; i < nextRefillNumber; i++) {
+                                const currentIdx = COUNTRY_CYCLE.indexOf(tempCountry);
+                                const nextIdx = (currentIdx + 1) % COUNTRY_CYCLE.length;
+                                tempCountry = COUNTRY_CYCLE[nextIdx];
+                            }
+                            nextCountry = tempCountry;
+                        }
+                        timer.nextCountry = nextCountry;
+                        timer.currentCycleCountry = nextCountry;
                     }
                     activeRefills = response.timers;
                     updateActiveRefillsTable(activeRefills);
@@ -553,7 +707,7 @@
                 row.insertCell(2).innerHTML = `${timer.refillCount}/${timer.totalRefills} <div class="progress-bar" style="margin-top: 5px;"><div class="progress-fill" style="width: ${progress}%;"></div></div>`;
                 row.insertCell(3).textContent = timer.totalRefills;
                 row.insertCell(4).innerHTML = `<span style="font-weight: 600; ${timer.remainingSeconds < 60 ? 'color: #dc3545;' : ''}">${timeDisplay}</span>`;
-                row.insertCell(5).innerHTML = `<strong>${escapeHtml(nextCountryDisplay)}</strong>`;
+                row.insertCell(5).innerHTML = `<strong style="color: #28a745;">${escapeHtml(nextCountryDisplay)}</strong>`;
                 row.insertCell(6).innerHTML = `<span class="status-badge ${statusClass}">${statusText}</span>`;
                 row.insertCell(7).innerHTML = `<button class="stop-btn" onclick="stopRefill('${escapeHtml(timer.passport)}')">🛑 Stop</button>`;
             });
@@ -836,6 +990,7 @@
         }
 
         // Initialize
+        loadAdminInfo();
         refreshData();
         refreshActiveRefills();
         startAutoRefresh();
