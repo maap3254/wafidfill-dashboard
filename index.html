@@ -396,6 +396,33 @@
     </div>
 
     <script>
+        // ============= EXTENSION COMMUNICATION =============
+// Replace this with YOUR EXTENSION ID from chrome://extensions/
+const EXTENSION_ID = 'mddnpfcdbipdaahiicahimipjmpnolbf';
+
+// Function to send message to Chrome extension
+function sendMessageToExtension(message) {
+    return new Promise((resolve) => {
+        if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+            try {
+                chrome.runtime.sendMessage(EXTENSION_ID, message, (response) => {
+                    if (chrome.runtime.lastError) {
+                        console.error('Extension error:', chrome.runtime.lastError.message);
+                        resolve({ success: false, error: chrome.runtime.lastError.message });
+                    } else {
+                        resolve(response || { success: false });
+                    }
+                });
+            } catch (error) {
+                console.error('Failed to send message:', error);
+                resolve({ success: false, error: error.message });
+            }
+        } else {
+            console.warn('Chrome runtime not available');
+            resolve({ success: false, error: 'Extension not accessible from web page' });
+        }
+    });
+}
         // ============= IMPORTANT =============
         // REPLACE THIS URL WITH YOUR GOOGLE APPS SCRIPT WEB APP URL
         const API_URL = 'https://script.google.com/macros/s/AKfycbz9fPwrsYCBdMrCdAkDsnSUL93HN3cDg9ZJVoOOn5IzHCUmeZ_tmHV_GtynnI-TyQpJ/exec';
