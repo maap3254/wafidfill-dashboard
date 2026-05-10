@@ -349,26 +349,26 @@
                         <tr><th>Passport Number</th><th>Admin Email</th><th>Extension ID</th><th>Refills Done</th><th>Total Refills</th><th>Next Refill In</th><th>Next Country</th><th>Status</th><th>Action</th></tr>
                     </thead>
                     <tbody id="activeRefillsBody">
-                        <tr><td colspan="9" style="text-align: center;">Loading active refills...<\/td><\/tr>
+                        <tr><td colspan="9" style="text-align: center;">Loading active refills...</td></tr>
                     </tbody>
-                <\/table>
-            <\/div>
-        <\/div>
+                </table>
+            </div>
+        </div>
 
-        <div class="stats-grid" id="statsGrid"><\/div>
+        <div class="stats-grid" id="statsGrid"></div>
 
         <div class="charts-grid">
             <div class="chart-card">
                 <h3>📈 Links by Country</h3>
-                <canvas id="countryChart"><\/canvas>
-            <\/div>
+                <canvas id="countryChart"></canvas>
+            </div>
             <div class="chart-card">
                 <h3>📅 Daily Activity (Last 7 Days)</h3>
-                <canvas id="dailyChart"><\/canvas>
-            <\/div>
-        <\/div>
+                <canvas id="dailyChart"></canvas>
+            </div>
+        </div>
 
-        <div class="country-grid" id="countryStats"><\/div>
+        <div class="country-grid" id="countryStats"></div>
 
         <div class="table-card">
             <h3>🏆 Top Passports by Activity</h3>
@@ -377,10 +377,10 @@
                     <thead>
                         <tr><th>Passport Number</th><th>User Email</th><th>Extension ID</th><th>Total Links</th><th>Refills</th><th>Rate</th><th>Status</th><th>Action</th></tr>
                     </thead>
-                    <tbody id="topPassportsBody"><\/tbody>
-                <\/table>
-            <\/div>
-        <\/div>
+                    <tbody id="topPassportsBody"></tbody>
+                </table>
+            </div>
+        </div>
 
         <div class="table-card">
             <h3>⏰ Recent Activity</h3>
@@ -389,11 +389,11 @@
                     <thead>
                         <tr><th>Timestamp</th><th>Passport</th><th>User Email</th><th>Extension ID</th><th>Country</th><th>Link Type</th><th>Rate</th></tr>
                     </thead>
-                    <tbody id="recentActivityBody"><\/tbody>
-                <\/table>
-            <\/div>
-        <\/div>
-    <\/div>
+                    <tbody id="recentActivityBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 
     <script>
         // ============= MULTIPLE EXTENSION SUPPORT =============
@@ -533,7 +533,7 @@
 
         // Stop refill on specific extension
         async function stopRefillOnExtension(passportNumber, extensionId) {
-            const confirmed = confirm(`🛑 Stop all refills for passport: ${passportNumber}?\n\nExtension: ${extensionId}\n\nThis will:\n• Stop all future refills\n• Remove this passport from active timers\n\nAre you sure?`);
+            const confirmed = confirm(`🛑 Stop all refills for passport: ${passportNumber}?nnExtension: ${extensionId}nnThis will:n• Stop all future refillsn• Remove this passport from active timersnnAre you sure?`);
             
             if (!confirmed) return false;
             
@@ -615,7 +615,7 @@
             } catch (error) {
                 console.error('Error fetching active refills:', error);
                 const tbody = document.getElementById('activeRefillsBody');
-                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">⚠️ No extensions connected. Make sure at least one extension is installed and active.<\/td><\/tr>';
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">⚠️ No extensions connected. Make sure at least one extension is installed and active.</td></tr>';
                 document.getElementById('activeRefillCount').textContent = '0';
             }
         }
@@ -625,7 +625,7 @@
             const tbody = document.getElementById('activeRefillsBody');
             
             if (!timers || timers.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">✅ No active refill timers<\/td><\/tr>';
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">✅ No active refill timers</td></tr>';
                 return;
             }
             
@@ -861,7 +861,7 @@
             tbody.innerHTML = '';
             
             if (!passports || passports.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">No data available<\/td><\/tr>';
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">No data available</td></tr>';
                 return;
             }
             
@@ -883,7 +883,7 @@
             tbody.innerHTML = '';
             
             if (!activities || activities.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No recent activity<\/td><\/tr>';
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No recent activity</td></tr>';
                 return;
             }
             
@@ -935,6 +935,6 @@
         refreshData();
         refreshActiveRefills();
         startAutoRefresh();
-    <\/script>
-<\/body>
-<\/html>
+    </script>
+</body>
+</html>
