@@ -397,17 +397,14 @@
 
     <script>
         // ============= MULTIPLE EXTENSION SUPPORT =============
-        // Add all your extension IDs here
         const EXTENSION_IDS = [
             'mddnpfcdbipdaahiicahimipjmpnolbf',  // Extension 1 (Main)
             'emocmiacmakapphfdhfephmfbkhdjipp'   // Extension 2 (Second)
-            // Add more extension IDs as needed
         ];
         
-        // Cache for user emails and extension info
         let userEmailCache = new Map();
-
-        // Function to send message to a specific extension
+        let passportExtensionCache = new Map();
+        
         function sendToExtension(extensionId, message) {
             return new Promise((resolve) => {
                 if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
@@ -428,10 +425,25 @@
             });
         }
 
-        // Get all active timers from all extensions
+        async function getExtensionOwnership() {
+            let ownership = new Map();
+            for (const extensionId of EXTENSION_IDS) {
+                try {
+                    const response = await sendToExtension(extensionId, { action: 'getAllIndividualRefillTimers' });
+                    if (response && response.success && response.timers && response.timers.length > 0) {
+                        for (const timer of response.timers) {
+                            ownership.set(timer.passport, extensionId);
+                        }
+                    }
+                } catch (error) {
+                    console.log(`Extension ${extensionId} not available:`, error);
+                }
+            }
+            return ownership;
+        }
+
         async function getAllActiveTimers() {
             let allTimers = [];
-            
             for (const extensionId of EXTENSION_IDS) {
                 try {
                     const response = await sendToExtension(extensionId, { action: 'getAllIndividualRefillTimers' });
@@ -445,18 +457,14 @@
                     console.log(`Extension ${extensionId} not available:`, error);
                 }
             }
-            
             return allTimers;
         }
 
-        // Get user email for a passport (from Google Sheets)
         async function getUserEmail(passportNumber) {
             if (userEmailCache.has(passportNumber)) {
                 return userEmailCache.get(passportNumber);
             }
-            
             const API_URL = 'https://script.google.com/macros/s/AKfycbxXyqNuYBf2yTH304gVVjCs6D2kmh5ozWSdGb2NckrjCeV4KaHb9rhztGwWJLFPlgcU/exec';
-            
             try {
                 const response = await fetch(`${API_URL}?action=getRecentActivity&limit=100`);
                 if (response.ok) {
@@ -469,7 +477,6 @@
                         }
                     }
                 }
-                
                 const topResponse = await fetch(`${API_URL}?action=getTopPassports&limit=50`);
                 if (topResponse.ok) {
                     const topData = await topResponse.json();
@@ -481,7 +488,6 @@
                         }
                     }
                 }
-                
                 userEmailCache.set(passportNumber, 'Unknown');
                 return 'Unknown';
             } catch (error) {
@@ -489,20 +495,12 @@
             }
         }
 
-        // Stop refill on specific extension
         async function stopRefillOnExtension(passportNumber, extensionId) {
             const confirmed = confirm(`🛑 Stop all refills for passport: ${passportNumber}?\n\nExtension: ${extensionId}\n\nThis will:\n• Stop all future refills\n• Remove this passport from active timers\n\nAre you sure?`);
-            
             if (!confirmed) return false;
-            
             showToast(`⏳ Stopping refill for ${passportNumber} on ${extensionId}...`, 'info');
-            
             try {
-                const response = await sendToExtension(extensionId, { 
-                    action: 'stopIndividualRefill', 
-                    passportNumber: passportNumber 
-                });
-                
+                const response = await sendToExtension(extensionId, { action: 'stopIndividualRefill', passportNumber: passportNumber });
                 if (response && response.success) {
                     showToast(`✅ Successfully stopped refill for ${passportNumber}`, 'success');
                     return true;
@@ -516,13 +514,11 @@
             }
         }
 
-        // ============= GOOGLE APPS SCRIPT URL =============
         const API_URL = 'https://script.google.com/macros/s/AKfycbxXyqNuYBf2yTH304gVVjCs6D2kmh5ozWSdGb2NckrjCeV4KaHb9rhztGwWJLFPlgcU/exec';
-        
         let charts = {};
         let activeRefills = [];
+        let extensionOwnership = new Map();
 
-        // Country cycle order for Next Country detection
         const COUNTRY_CYCLE = ['Saudi Arabia', 'Bahrain', 'UAE', 'Oman'];
 
         function getNextCountry(currentCountry, originalCountry) {
@@ -533,11 +529,10 @@
             return COUNTRY_CYCLE[nextIndex];
         }
 
-        // Function to refresh active refills from all extensions
         async function refreshActiveRefills() {
             try {
+                extensionOwnership = await getExtensionOwnership();
                 const timers = await getAllActiveTimers();
-                
                 if (timers && timers.length > 0) {
                     for (const timer of timers) {
                         if (!userEmailCache.has(timer.passport)) {
@@ -545,10 +540,8 @@
                             userEmailCache.set(timer.passport, email);
                         }
                         timer.username = userEmailCache.get(timer.passport) || 'Unknown';
-                        
                         const originalCountry = timer.originalTravelCountry || 'Saudi Arabia';
                         const nextRefillNumber = timer.refillCount + 1;
-                        
                         let nextCountry = originalCountry;
                         if (nextRefillNumber > 0) {
                             let tempCountry = originalCountry;
@@ -576,33 +569,37 @@
             }
         }
 
-        // Update active refills table
+        function getExtensionIdForPassport(passportNumber) {
+            if (extensionOwnership.has(passportNumber)) {
+                return extensionOwnership.get(passportNumber);
+            }
+            const activeTimer = activeRefills.find(t => t.passport === passportNumber);
+            if (activeTimer && activeTimer.extensionId) {
+                return activeTimer.extensionId;
+            }
+            return EXTENSION_IDS[0] ? EXTENSION_IDS[0].substring(0, 8) + '...' : 'Unknown';
+        }
+
         function updateActiveRefillsTable(timers) {
             const tbody = document.getElementById('activeRefillsBody');
-            
             if (!timers || timers.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">✅ No active refill timers</td></tr>';
                 return;
             }
-            
             tbody.innerHTML = '';
-            
             timers.forEach(timer => {
                 const row = tbody.insertRow();
                 const hours = Math.floor(timer.remainingSeconds / 3600);
                 const minutes = Math.floor((timer.remainingSeconds % 3600) / 60);
                 const seconds = timer.remainingSeconds % 60;
-                
                 let timeDisplay = '';
                 if (hours > 0) timeDisplay = `${hours}h ${minutes}m ${seconds}s`;
                 else if (minutes > 0) timeDisplay = `${minutes}m ${seconds}s`;
                 else timeDisplay = `${seconds}s`;
-                
                 const progress = (timer.refillCount / timer.totalRefills) * 100;
                 const statusText = timer.isRetry ? '🔄 Retrying' : (timer.remainingSeconds > 0 ? '⏰ Waiting' : '⚡ Ready');
                 const statusClass = timer.isRetry ? 'status-active' : 'status-running';
                 const nextCountryDisplay = timer.nextCountry || 'Calculating...';
-                
                 row.insertCell(0).innerHTML = `<strong>${escapeHtml(timer.passport)}</strong>`;
                 row.insertCell(1).innerHTML = `<span style="font-size: 12px;">${escapeHtml(timer.username || 'Unknown')}</span>`;
                 row.insertCell(2).innerHTML = `<span style="font-size: 10px; font-family: monospace;">${escapeHtml(timer.extensionId || 'Unknown')}</span>`;
@@ -615,36 +612,28 @@
             });
         }
 
-        // Show toast notification
         function showToast(message, type = 'info') {
             const toast = document.createElement('div');
             toast.className = `toast-message toast-${type}`;
             toast.textContent = message;
             document.body.appendChild(toast);
-            
             setTimeout(() => {
                 toast.style.opacity = '0';
                 setTimeout(() => toast.remove(), 300);
             }, 3000);
         }
 
-        // Refresh dashboard data from Google Sheets
         async function refreshData() {
             const errorDiv = document.getElementById('errorMsg');
             const loadingDiv = document.getElementById('loadingMsg');
-            
             errorDiv.style.display = 'none';
             loadingDiv.style.display = 'block';
-            
             try {
                 const response = await fetch(`${API_URL}?action=getDashboardData`);
-                
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
-                
                 const data = await response.json();
-                
                 if (data.success) {
                     updateDashboard(data);
                     document.getElementById('lastUpdated').innerHTML = `Last Updated: ${new Date().toLocaleString()}`;
@@ -656,7 +645,6 @@
                 console.error('Error:', error);
                 errorDiv.innerHTML = `⚠️ Error: ${error.message}. Make sure your Apps Script is deployed as a Web App.`;
                 errorDiv.style.display = 'block';
-                
                 const cached = localStorage.getItem('dashboardCache');
                 if (cached) {
                     const { data, timestamp } = JSON.parse(cached);
@@ -704,17 +692,12 @@
                     <div class="label">Avg Links/Passport</div>
                 </div>
             `;
-
             updateCountryChart(data.countryStats);
             updateDailyChart(data.dailyActivity);
             updateCountryStatsGrid(data.countryStats);
             updateTopPassportsTable(data.topPassports || []);
             updateRecentActivityTable(data.recentActivity || []);
-            
-            localStorage.setItem('dashboardCache', JSON.stringify({
-                data: data,
-                timestamp: Date.now()
-            }));
+            localStorage.setItem('dashboardCache', JSON.stringify({ data: data, timestamp: Date.now() }));
         }
 
         function updateCountryChart(countryStats) {
@@ -722,25 +705,11 @@
             const allowedCountries = ['Saudi Arabia', 'Bahrain', 'UAE', 'Oman'];
             const countries = allowedCountries.filter(c => countryStats[c]);
             const links = countries.map(c => countryStats[c]?.totalLinks || 0);
-            
             if (charts.countryChart) charts.countryChart.destroy();
-            
             charts.countryChart = new Chart(ctx, {
                 type: 'bar',
-                data: {
-                    labels: countries,
-                    datasets: [{
-                        label: 'Payment Links',
-                        data: links,
-                        backgroundColor: ['#667eea', '#764ba2', '#f093fb', '#f5576c'],
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    scales: { y: { beginAtZero: true, title: { display: true, text: 'Number of Links' } } }
-                }
+                data: { labels: countries, datasets: [{ label: 'Payment Links', data: links, backgroundColor: ['#667eea', '#764ba2', '#f093fb', '#f5576c'], borderWidth: 1 }] },
+                options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'Number of Links' } } } }
             });
         }
 
@@ -748,43 +717,24 @@
             const ctx = document.getElementById('dailyChart').getContext('2d');
             const dates = dailyActivity.map(d => d.date);
             const counts = dailyActivity.map(d => d.count);
-            
             if (charts.dailyChart) charts.dailyChart.destroy();
-            
             charts.dailyChart = new Chart(ctx, {
                 type: 'line',
-                data: {
-                    labels: dates,
-                    datasets: [{
-                        label: 'Links Generated',
-                        data: counts,
-                        borderColor: '#667eea',
-                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                        fill: true,
-                        tension: 0.4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    scales: { y: { beginAtZero: true } }
-                }
+                data: { labels: dates, datasets: [{ label: 'Links Generated', data: counts, borderColor: '#667eea', backgroundColor: 'rgba(102, 126, 234, 0.1)', fill: true, tension: 0.4 }] },
+                options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true } } }
             });
         }
 
         function updateCountryStatsGrid(countryStats) {
             const container = document.getElementById('countryStats');
             container.innerHTML = '';
-            
             const allowedCountries = ['Saudi Arabia', 'Bahrain', 'UAE', 'Oman'];
-            
             for (const country of allowedCountries) {
                 const stats = countryStats[country] || { passportsCount: 0, totalLinks: 0, totalRate: 0 };
                 const passportCount = stats.passportsCount || stats.passports || 0;
                 const linkCount = stats.totalLinks || 0;
                 const avgPerPassport = passportCount > 0 ? (linkCount / passportCount).toFixed(1) : 0;
                 const progressWidth = Math.min(100, (linkCount / (passportCount || 1)) * 20);
-                
                 container.innerHTML += `
                     <div class="country-card">
                         <h4>${getCountryFlag(country)} ${country}</h4>
@@ -815,55 +765,46 @@
         function updateTopPassportsTable(passports) {
             const tbody = document.getElementById('topPassportsBody');
             tbody.innerHTML = '';
-            
             if (!passports || passports.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">No data available</td></tr>';
                 return;
             }
-            
             passports.slice(0, 20).forEach(p => {
                 const row = tbody.insertRow();
+                const extId = getExtensionIdForPassport(p.passportNumber);
                 row.insertCell(0).innerHTML = `<strong>${escapeHtml(p.passportNumber)}</strong>`;
                 row.insertCell(1).innerHTML = `<span style="font-size: 12px;">${escapeHtml(p.username || 'Unknown')}</span>`;
-                row.insertCell(2).innerHTML = `<span style="font-size: 10px; font-family: monospace;">${escapeHtml(p.extensionId || 'N/A')}</span>`;
+                row.insertCell(2).innerHTML = `<span style="font-size: 10px; font-family: monospace;" title="${escapeHtml(extId)}">${escapeHtml(extId.length > 15 ? extId.substring(0, 12) + '...' : extId)}</span>`;
                 row.insertCell(3).textContent = p.totalLinks || 0;
                 row.insertCell(4).textContent = p.refillCount || 0;
                 row.insertCell(5).textContent = p.rate || 'N/A';
                 row.insertCell(6).innerHTML = `<span class="status-badge status-active">${p.status || 'active'}</span>`;
-                row.insertCell(7).innerHTML = `<button class="stop-btn" onclick="stopRefillOnExtension('${escapeHtml(p.passportNumber)}', '${escapeHtml(p.extensionId || EXTENSION_IDS[0])}')">🛑 Stop</button>`;
+                row.insertCell(7).innerHTML = `<button class="stop-btn" onclick="stopRefillOnExtension('${escapeHtml(p.passportNumber)}', '${escapeHtml(extId)}')">🛑 Stop</button>`;
             });
         }
 
         function updateRecentActivityTable(activities) {
             const tbody = document.getElementById('recentActivityBody');
             tbody.innerHTML = '';
-            
             if (!activities || activities.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No recent activity</td></tr>';
                 return;
             }
-            
             activities.slice(0, 30).forEach(activity => {
                 const row = tbody.insertRow();
+                const extId = getExtensionIdForPassport(activity.passportNumber);
                 row.insertCell(0).textContent = new Date(activity.timestamp).toLocaleString();
                 row.insertCell(1).innerHTML = `<strong>${escapeHtml(activity.passportNumber)}</strong>`;
                 row.insertCell(2).innerHTML = `<span style="font-size: 12px;">${escapeHtml(activity.username || 'Unknown')}</span>`;
-                row.insertCell(3).innerHTML = `<span style="font-size: 10px; font-family: monospace;">${escapeHtml(activity.extensionId || 'N/A')}</span>`;
+                row.insertCell(3).innerHTML = `<span style="font-size: 10px; font-family: monospace;" title="${escapeHtml(extId)}">${escapeHtml(extId.length > 15 ? extId.substring(0, 12) + '...' : extId)}</span>`;
                 row.insertCell(4).textContent = activity.country || 'N/A';
-                row.insertCell(5).innerHTML = activity.isOriginal ? 
-                    '<span class="status-badge status-active">Original</span>' : 
-                    `<span class="status-badge">Refill ${activity.refillNumber}</span>`;
+                row.insertCell(5).innerHTML = activity.isOriginal ? '<span class="status-badge status-active">Original</span>' : `<span class="status-badge">Refill ${activity.refillNumber}</span>`;
                 row.insertCell(6).textContent = activity.rate || 'N/A';
             });
         }
 
         function getCountryFlag(country) {
-            const flags = {
-                'Saudi Arabia': '🇸🇦',
-                'Bahrain': '🇧🇭',
-                'UAE': '🇦🇪',
-                'Oman': '🇴🇲'
-            };
+            const flags = { 'Saudi Arabia': '🇸🇦', 'Bahrain': '🇧🇭', 'UAE': '🇦🇪', 'Oman': '🇴🇲' };
             return flags[country] || '🌍';
         }
 
@@ -877,7 +818,6 @@
             });
         }
 
-        // Auto-refresh every 30 seconds
         let refreshInterval;
         function startAutoRefresh() {
             if (refreshInterval) clearInterval(refreshInterval);
@@ -887,7 +827,6 @@
             }, 30000);
         }
 
-        // Initialize
         refreshData();
         refreshActiveRefills();
         startAutoRefresh();
