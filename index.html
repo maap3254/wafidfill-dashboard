@@ -397,36 +397,39 @@
 
     <script>
         // ============= EXTENSION COMMUNICATION =============
-// Replace this with YOUR EXTENSION ID from chrome://extensions/
-const EXTENSION_ID = 'mddnpfcdbipdaahiicahimipjmpnolbf';
+        // CHANGE THIS TO YOUR EXTENSION ID
+        // For first extension: 'mddnpfcdbipdaahiicahimipjmpnolbf'
+        // For second extension: 'bhghoamapcdpbohphigoooaddinpkbay'
+        const EXTENSION_ID = 'mddnpfcdbipdaahiicahimipjmpnolbf';
+        // ===================================================
 
-// Function to send message to Chrome extension
-function sendMessageToExtension(message) {
-    return new Promise((resolve) => {
-        if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
-            try {
-                chrome.runtime.sendMessage(EXTENSION_ID, message, (response) => {
-                    if (chrome.runtime.lastError) {
-                        console.error('Extension error:', chrome.runtime.lastError.message);
-                        resolve({ success: false, error: chrome.runtime.lastError.message });
-                    } else {
-                        resolve(response || { success: false });
+        // Function to send message to Chrome extension
+        function sendMessageToExtension(message) {
+            return new Promise((resolve) => {
+                if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+                    try {
+                        chrome.runtime.sendMessage(EXTENSION_ID, message, (response) => {
+                            if (chrome.runtime.lastError) {
+                                console.error('Extension error:', chrome.runtime.lastError.message);
+                                resolve({ success: false, error: chrome.runtime.lastError.message });
+                            } else {
+                                resolve(response || { success: false });
+                            }
+                        });
+                    } catch (error) {
+                        console.error('Failed to send message:', error);
+                        resolve({ success: false, error: error.message });
                     }
-                });
-            } catch (error) {
-                console.error('Failed to send message:', error);
-                resolve({ success: false, error: error.message });
-            }
-        } else {
-            console.warn('Chrome runtime not available');
-            resolve({ success: false, error: 'Extension not accessible from web page' });
+                } else {
+                    console.warn('Chrome runtime not available');
+                    resolve({ success: false, error: 'Extension not accessible from web page' });
+                }
+            });
         }
-    });
-}
-        // ============= IMPORTANT =============
-        // REPLACE THIS URL WITH YOUR GOOGLE APPS SCRIPT WEB APP URL
+
+        // ============= GOOGLE APPS SCRIPT URL =============
         const API_URL = 'https://script.google.com/macros/s/AKfycbz9fPwrsYCBdMrCdAkDsnSUL93HN3cDg9ZJVoOOn5IzHCUmeZ_tmHV_GtynnI-TyQpJ/exec';
-        // =====================================
+        // ===================================================
         
         let charts = {};
         let activeRefills = [];
@@ -434,8 +437,6 @@ function sendMessageToExtension(message) {
         // Function to refresh active refills from extension
         async function refreshActiveRefills() {
             try {
-                // This sends a message to the extension to get active refills
-                // Note: This requires the extension to have a listener for this action
                 const response = await sendMessageToExtension({ action: 'getAllIndividualRefillTimers' });
                 
                 if (response && response.success && response.timers) {
@@ -454,7 +455,6 @@ function sendMessageToExtension(message) {
             }
         }
 
-       
         // Function to stop a single refill
         async function stopRefill(passportNumber) {
             const confirmed = confirm(`🛑 Stop all refills for passport: ${passportNumber}?\n\nThis will:\n• Stop all future refills\n• Remove this passport from active timers\n\nYou can start a new refill cycle by making a new payment.\n\nAre you sure?`);
@@ -471,34 +471,10 @@ function sendMessageToExtension(message) {
                 
                 if (response && response.success) {
                     showToast(`✅ Successfully stopped refill for ${passportNumber}`, 'success');
-                    // Refresh both dashboard data and active refills
                     refreshActiveRefills();
                     refreshData();
                 } else {
                     showToast(`❌ Failed to stop refill for ${passportNumber}: ${response?.error || 'Unknown error'}`, 'error');
-                }
-            } catch (error) {
-                showToast(`❌ Error: ${error.message}`, 'error');
-            }
-        }
-
-        // Function to stop all refills
-        async function stopAllRefills() {
-            const confirmed = confirm(`🛑 STOP ALL ACTIVE REFILLS?\n\nThis will stop ALL running refill timers for ALL passports.\n\nThis action CANNOT be undone easily.\n\nAre you ABSOLUTELY sure?`);
-            
-            if (!confirmed) return;
-            
-            showToast(`⏳ Stopping all refills...`, 'info');
-            
-            try {
-                const response = await sendMessageToExtension({ action: 'stopAllIndividualRefills' });
-                
-                if (response && response.success) {
-                    showToast(`✅ Successfully stopped all refills`, 'success');
-                    refreshActiveRefills();
-                    refreshData();
-                } else {
-                    showToast(`❌ Failed to stop all refills: ${response?.error || 'Unknown error'}`, 'error');
                 }
             } catch (error) {
                 showToast(`❌ Error: ${error.message}`, 'error');
@@ -648,8 +624,10 @@ function sendMessageToExtension(message) {
 
         function updateCountryChart(countryStats) {
             const ctx = document.getElementById('countryChart').getContext('2d');
-            const countries = Object.keys(countryStats);
-            const links = countries.map(c => countryStats[c].totalLinks || 0);
+            // Only show Saudi Arabia, Bahrain, UAE, Oman
+            const allowedCountries = ['Saudi Arabia', 'Bahrain', 'UAE', 'Oman'];
+            const countries = allowedCountries.filter(c => countryStats[c]);
+            const links = countries.map(c => countryStats[c]?.totalLinks || 0);
             
             if (charts.countryChart) charts.countryChart.destroy();
             
@@ -660,7 +638,7 @@ function sendMessageToExtension(message) {
                     datasets: [{
                         label: 'Payment Links',
                         data: links,
-                        backgroundColor: ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe', '#43e97b'],
+                        backgroundColor: ['#667eea', '#764ba2', '#f093fb', '#f5576c'],
                         borderWidth: 1
                     }]
                 },
@@ -708,7 +686,11 @@ function sendMessageToExtension(message) {
             const container = document.getElementById('countryStats');
             container.innerHTML = '';
             
-            for (const [country, stats] of Object.entries(countryStats)) {
+            // Only show Saudi Arabia, Bahrain, UAE, Oman
+            const allowedCountries = ['Saudi Arabia', 'Bahrain', 'UAE', 'Oman'];
+            
+            for (const country of allowedCountries) {
+                const stats = countryStats[country] || { passports: 0, totalLinks: 0, totalRate: 0 };
                 const passportCount = stats.passports || 0;
                 const linkCount = stats.totalLinks || 0;
                 const avgPerPassport = passportCount > 0 ? (linkCount / passportCount).toFixed(1) : 0;
@@ -790,7 +772,6 @@ function sendMessageToExtension(message) {
                 'Bahrain': '🇧🇭',
                 'UAE': '🇦🇪',
                 'Oman': '🇴🇲'
-                
             };
             return flags[country] || '🌍';
         }
