@@ -400,13 +400,13 @@
         // Add all your extension IDs here
         const EXTENSION_IDS = [
             'mddnpfcdbipdaahiicahimipjmpnolbf',  // Extension 1 (Main)
-            'bhghoamapcdpbohphigoooaddinpkbay',   // Extension 2 (Second)
+            'bhghoamapcdpbohphigoooaddinpkbay'   // Extension 2 (Second)
             // Add more extension IDs as needed
         ];
         
         // Cache for user emails and admin info per extension
-        let extensionInfoCache = new Map(); // extensionId -> { email, connected }
-        let userEmailCache = new Map(); // passport -> email
+        let extensionInfoCache = new Map();
+        let userEmailCache = new Map();
 
         // Function to send message to a specific extension
         function sendToExtension(extensionId, message) {
@@ -429,17 +429,6 @@
             });
         }
 
-        // Try to send message to any extension that responds
-        async function sendMessageToAnyExtension(message) {
-            for (const extensionId of EXTENSION_IDS) {
-                const response = await sendToExtension(extensionId, message);
-                if (response && response.success) {
-                    return { ...response, extensionId: extensionId };
-                }
-            }
-            return { success: false, error: 'No extension available' };
-        }
-
         // Get admin email for a specific extension
         async function getAdminEmailForExtension(extensionId) {
             if (extensionInfoCache.has(extensionId)) {
@@ -454,7 +443,6 @@
                     return response.email;
                 }
                 
-                // Try alternative
                 const settingsResponse = await sendToExtension(extensionId, { action: 'getUserSettings' });
                 if (settingsResponse && settingsResponse.success && settingsResponse.email) {
                     extensionInfoCache.set(extensionId, { email: settingsResponse.email, connected: true });
@@ -477,7 +465,6 @@
                 try {
                     const response = await sendToExtension(extensionId, { action: 'getAllIndividualRefillTimers' });
                     if (response && response.success && response.timers && response.timers.length > 0) {
-                        // Add extension info to each timer
                         const adminEmail = await getAdminEmailForExtension(extensionId);
                         for (const timer of response.timers) {
                             timer.extensionId = extensionId;
@@ -498,6 +485,8 @@
             if (userEmailCache.has(passportNumber)) {
                 return userEmailCache.get(passportNumber);
             }
+            
+            const API_URL = 'https://script.google.com/macros/s/AKfycbxXyqNuYBf2yTH304gVVjCs6D2kmh5ozWSdGb2NckrjCeV4KaHb9rhztGwWJLFPlgcU/exec';
             
             try {
                 const response = await fetch(`${API_URL}?action=getRecentActivity&limit=100`);
@@ -533,7 +522,7 @@
 
         // Stop refill on specific extension
         async function stopRefillOnExtension(passportNumber, extensionId) {
-            const confirmed = confirm(`🛑 Stop all refills for passport: ${passportNumber}?nnExtension: ${extensionId}nnThis will:n• Stop all future refillsn• Remove this passport from active timersnnAre you sure?`);
+            const confirmed = confirm(`🛑 Stop all refills for passport: ${passportNumber}?\n\nExtension: ${extensionId}\n\nThis will:\n• Stop all future refills\n• Remove this passport from active timers\n\nAre you sure?`);
             
             if (!confirmed) return false;
             
@@ -581,7 +570,6 @@
                 const timers = await getAllActiveTimers();
                 
                 if (timers && timers.length > 0) {
-                    // Fetch user emails for each passport
                     for (const timer of timers) {
                         if (!userEmailCache.has(timer.passport)) {
                             const email = await getUserEmail(timer.passport);
@@ -589,7 +577,6 @@
                         }
                         timer.userEmail = userEmailCache.get(timer.passport) || 'Unknown';
                         
-                        // Calculate next country
                         const originalCountry = timer.originalTravelCountry || 'Saudi Arabia';
                         const nextRefillNumber = timer.refillCount + 1;
                         
