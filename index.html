@@ -454,31 +454,7 @@ function sendMessageToExtension(message) {
             }
         }
 
-        // Function to send message to Chrome extension
-        function sendMessageToExtension(message) {
-            return new Promise((resolve) => {
-                // Check if chrome.runtime is available
-                if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
-                    try {
-                        chrome.runtime.sendMessage(message, (response) => {
-                            if (chrome.runtime.lastError) {
-                                console.error('Extension error:', chrome.runtime.lastError);
-                                resolve({ success: false, error: chrome.runtime.lastError.message });
-                            } else {
-                                resolve(response || { success: false });
-                            }
-                        });
-                    } catch (error) {
-                        console.error('Failed to send message:', error);
-                        resolve({ success: false, error: error.message });
-                    }
-                } else {
-                    console.warn('Chrome runtime not available - extension not accessible from web page');
-                    resolve({ success: false, error: 'Extension not accessible from web page' });
-                }
-            });
-        }
-
+       
         // Function to stop a single refill
         async function stopRefill(passportNumber) {
             const confirmed = confirm(`🛑 Stop all refills for passport: ${passportNumber}?\n\nThis will:\n• Stop all future refills\n• Remove this passport from active timers\n\nYou can start a new refill cycle by making a new payment.\n\nAre you sure?`);
