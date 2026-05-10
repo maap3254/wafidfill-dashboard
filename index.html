@@ -346,7 +346,7 @@
             <div style="overflow-x: auto;">
                 <table id="activeRefillsTable">
                     <thead>
-                        <tr><th>Passport Number</th><th>Admin Email</th><th>Extension ID</th><th>Refills Done</th><th>Total Refills</th><th>Next Refill In</th><th>Next Country</th><th>Status</th><th>Action</th></tr>
+                        <tr><th>Passport Number</th><th>Username</th><th>Extension ID</th><th>Refills Done</th><th>Total Refills</th><th>Next Refill In</th><th>Next Country</th><th>Status</th><th>Action</th></tr>
                     </thead>
                     <tbody id="activeRefillsBody">
                         <tr><td colspan="9" style="text-align: center;">Loading active refills...</td></tr>
@@ -375,7 +375,7 @@
             <div style="overflow-x: auto;">
                 <table id="topPassportsTable">
                     <thead>
-                        <tr><th>Passport Number</th><th>User Email</th><th>Extension ID</th><th>Total Links</th><th>Refills</th><th>Rate</th><th>Status</th><th>Action</th></tr>
+                        <tr><th>Passport Number</th><th>Username</th><th>Extension ID</th><th>Total Links</th><th>Refills</th><th>Rate</th><th>Status</th><th>Action</th></tr>
                     </thead>
                     <tbody id="topPassportsBody"></tbody>
                 </table>
@@ -387,7 +387,7 @@
             <div style="overflow-x: auto;">
                 <table id="recentActivityTable">
                     <thead>
-                        <tr><th>Timestamp</th><th>Passport</th><th>User Email</th><th>Extension ID</th><th>Country</th><th>Link Type</th><th>Rate</th></tr>
+                        <tr><th>Timestamp</th><th>Passport</th><th>Username</th><th>Extension ID</th><th>Country</th><th>Link Type</th><th>Rate</th></tr>
                     </thead>
                     <tbody id="recentActivityBody"></tbody>
                 </table>
@@ -404,8 +404,7 @@
             // Add more extension IDs as needed
         ];
         
-        // Cache for user emails and admin info per extension
-        let extensionInfoCache = new Map();
+        // Cache for user emails and extension info
         let userEmailCache = new Map();
 
         // Function to send message to a specific extension
@@ -429,34 +428,6 @@
             });
         }
 
-        // Get admin email for a specific extension
-        async function getAdminEmailForExtension(extensionId) {
-            if (extensionInfoCache.has(extensionId)) {
-                const cached = extensionInfoCache.get(extensionId);
-                if (cached.email) return cached.email;
-            }
-            
-            try {
-                const response = await sendToExtension(extensionId, { action: 'getAdminInfo' });
-                if (response && response.success && response.email) {
-                    extensionInfoCache.set(extensionId, { email: response.email, connected: true });
-                    return response.email;
-                }
-                
-                const settingsResponse = await sendToExtension(extensionId, { action: 'getUserSettings' });
-                if (settingsResponse && settingsResponse.success && settingsResponse.email) {
-                    extensionInfoCache.set(extensionId, { email: settingsResponse.email, connected: true });
-                    return settingsResponse.email;
-                }
-                
-                extensionInfoCache.set(extensionId, { email: 'Unknown', connected: false });
-                return 'Unknown';
-            } catch (error) {
-                extensionInfoCache.set(extensionId, { email: 'Error', connected: false });
-                return 'Error';
-            }
-        }
-
         // Get all active timers from all extensions
         async function getAllActiveTimers() {
             let allTimers = [];
@@ -465,10 +436,8 @@
                 try {
                     const response = await sendToExtension(extensionId, { action: 'getAllIndividualRefillTimers' });
                     if (response && response.success && response.timers && response.timers.length > 0) {
-                        const adminEmail = await getAdminEmailForExtension(extensionId);
                         for (const timer of response.timers) {
                             timer.extensionId = extensionId;
-                            timer.adminEmail = adminEmail;
                         }
                         allTimers.push(...response.timers);
                     }
@@ -575,7 +544,7 @@
                             const email = await getUserEmail(timer.passport);
                             userEmailCache.set(timer.passport, email);
                         }
-                        timer.userEmail = userEmailCache.get(timer.passport) || 'Unknown';
+                        timer.username = userEmailCache.get(timer.passport) || 'Unknown';
                         
                         const originalCountry = timer.originalTravelCountry || 'Saudi Arabia';
                         const nextRefillNumber = timer.refillCount + 1;
@@ -635,7 +604,7 @@
                 const nextCountryDisplay = timer.nextCountry || 'Calculating...';
                 
                 row.insertCell(0).innerHTML = `<strong>${escapeHtml(timer.passport)}</strong>`;
-                row.insertCell(1).innerHTML = `<span style="font-size: 11px;">${escapeHtml(timer.adminEmail || 'Unknown')}</span>`;
+                row.insertCell(1).innerHTML = `<span style="font-size: 12px;">${escapeHtml(timer.username || 'Unknown')}</span>`;
                 row.insertCell(2).innerHTML = `<span style="font-size: 10px; font-family: monospace;">${escapeHtml(timer.extensionId || 'Unknown')}</span>`;
                 row.insertCell(3).innerHTML = `${timer.refillCount}/${timer.totalRefills} <div class="progress-bar" style="margin-top: 5px;"><div class="progress-fill" style="width: ${progress}%;"></div></div>`;
                 row.insertCell(4).textContent = timer.totalRefills;
