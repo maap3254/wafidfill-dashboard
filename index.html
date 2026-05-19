@@ -46,6 +46,7 @@
             justify-content: flex-end;
             align-items: center;
             gap: 15px;
+            flex-wrap: wrap;
         }
 
         .last-updated {
@@ -299,6 +300,16 @@
             background: #17a2b8;
         }
 
+        .extension-connected {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .extension-disconnected {
+            color: #dc3545;
+            font-weight: bold;
+        }
+
         @keyframes slideIn {
             from {
                 transform: translateX(100%);
@@ -320,6 +331,9 @@
             .header h1 {
                 font-size: 1.5rem;
             }
+            .last-updated-bar {
+                justify-content: center;
+            }
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -339,6 +353,14 @@
 
         <div id="errorMsg" class="error"></div>
         <div id="loadingMsg" class="loading" style="display: none;">Loading dashboard data...</div>
+
+        <!-- Extension Connection Status -->
+        <div class="table-card" id="extensionStatusSection" style="background: #f8f9fa;">
+            <h3>🔌 Extension Connection Status</h3>
+            <div id="extensionStatusList" style="font-family: monospace; font-size: 12px;">
+                Checking extensions...
+            </div>
+        </div>
 
         <!-- Active Refills Section -->
         <div class="table-card" id="activeRefillsSection">
@@ -396,18 +418,20 @@
     </div>
 
     <script>
-        // ============= MULTIPLE EXTENSION SUPPORT =============
+        // ============= EXTENSION IDS - ALL YOUR EXTENSIONS =============
         const EXTENSION_IDS = [
-            'mddnpfcdbipdaahiicahimipjmpnolbf',  
-            'efenbafbkfedjdmhojpbibihinigmdlc' ,
+            'mddnpfcdbipdaahiicahimipjmpnolbf',
+            'efenbafbkfedjdmhojpbibihinigmdlc',
             'emocmiacmakapphfdhfephmfbkhdjipp',
             'ljmbhnnlbfpkpefchchgmiilidhlpjim',
             'bilafpipilcghdnkdlbggeabkdajdjob'
         ];
         
+        let extensionStatusCache = new Map();
         let userEmailCache = new Map();
         let passportExtensionCache = new Map();
         
+        // Send message to a specific extension
         function sendToExtension(extensionId, message) {
             return new Promise((resolve) => {
                 if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
@@ -427,9 +451,11 @@
                 }
             });
         }
-
+        
+        // Check which extension owns a passport
         async function getExtensionOwnership() {
             let ownership = new Map();
+            
             for (const extensionId of EXTENSION_IDS) {
                 try {
                     const response = await sendToExtension(extensionId, { action: 'getAllIndividualRefillTimers' });
@@ -442,31 +468,114 @@
                     console.log(`Extension ${extensionId} not available:`, error);
                 }
             }
+            
             return ownership;
         }
-
+        
+        // Get all active timers from all extensions
         async function getAllActiveTimers() {
             let allTimers = [];
+            
             for (const extensionId of EXTENSION_IDS) {
                 try {
                     const response = await sendToExtension(extensionId, { action: 'getAllIndividualRefillTimers' });
                     if (response && response.success && response.timers && response.timers.length > 0) {
+                        console.log(`Extension ${extensionId.substring(0, 8)}... has ${response.timers.length} timers`);
                         for (const timer of response.timers) {
                             timer.extensionId = extensionId;
+                            allTimers.push(timer);
                         }
-                        allTimers.push(...response.timers);
                     }
                 } catch (error) {
-                    console.log(`Extension ${extensionId} not available:`, error);
+                    console.log(`Could not reach extension ${extensionId.substring(0, 8)}...`);
                 }
             }
+            
             return allTimers;
         }
-
+        
+        // Test connection to an extension
+        async function testExtensionConnection(extensionId) {
+            try {
+                const response = await sendToExtension(extensionId, { action: 'ping' });
+                if (response && response.status === 'active') {
+                    return { connected: true, version: response.version };
+                }
+                return { connected: false };
+            } catch (error) {
+                return { connected: false, error: error.message };
+            }
+        }
+        
+        // Update extension status display
+        async function updateExtensionStatus() {
+            const statusDiv = document.getElementById('extensionStatusList');
+            if (!statusDiv) return;
+            
+            let html = '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px;">';
+            
+            for (const extensionId of EXTENSION_IDS) {
+                const status = await testExtensionConnection(extensionId);
+                const shortId = extensionId.substring(0, 12) + '...';
+                const statusClass = status.connected ? 'extension-connected' : 'extension-disconnected';
+                const statusText = status.connected ? '✅ Connected' : '❌ Not Connected';
+                
+                html += `
+                    <div style="padding: 10px; background: white; border-radius: 8px; border-left: 4px solid ${status.connected ? '#28a745' : '#dc3545'};">
+                        <div><strong>Extension:</strong> <code>${shortId}</code></div>
+                        <div class="${statusClass}">${statusText}</div>
+                        ${status.version ? `<div style="font-size: 11px; color: #666;">Version: ${status.version}</div>` : ''}
+                    </div>
+                `;
+            }
+            
+            html += '</div>';
+            statusDiv.innerHTML = html;
+        }
+        
+        async function refreshActiveRefills() {
+            const tbody = document.getElementById('activeRefillsBody');
+            const countSpan = document.getElementById('activeRefillCount');
+            
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">🔄 Refreshing active refills...</td></tr>';
+            
+            try {
+                // Update extension status
+                await updateExtensionStatus();
+                
+                const timers = await getAllActiveTimers();
+                
+                if (timers && timers.length > 0) {
+                    // Get usernames for each passport
+                    for (const timer of timers) {
+                        try {
+                            const email = await getUserEmail(timer.passport);
+                            timer.username = email;
+                        } catch (e) {
+                            timer.username = 'Unknown';
+                        }
+                    }
+                    
+                    updateActiveRefillsTable(timers);
+                    countSpan.textContent = timers.length;
+                    console.log(`✅ Found ${timers.length} active timers across all extensions`);
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">📭 No active refill timers found<br><small>• Timers start automatically after a payment is detected on wafid.com<br>• Make sure you have made a payment recently<br>• Click "Refresh Active Refills" button to check again</small></td></tr>';
+                    countSpan.textContent = '0';
+                    console.log('No active timers found');
+                }
+            } catch (error) {
+                console.error('Error fetching active refills:', error);
+                tbody.innerHTML = `<tr><td colspan="9" style="text-align: center;">⚠️ Error: ${error.message}<br><small>Make sure at least one extension is installed and active</small></td></tr>`;
+                countSpan.textContent = '0';
+            }
+        }
+        
         async function getUserEmail(passportNumber) {
             if (userEmailCache.has(passportNumber)) {
                 return userEmailCache.get(passportNumber);
             }
+            
             const API_URL = 'https://script.google.com/macros/s/AKfycbxXyqNuYBf2yTH304gVVjCs6D2kmh5ozWSdGb2NckrjCeV4KaHb9rhztGwWJLFPlgcU/exec';
             try {
                 const response = await fetch(`${API_URL}?action=getRecentActivity&limit=100`);
@@ -480,35 +589,27 @@
                         }
                     }
                 }
-                const topResponse = await fetch(`${API_URL}?action=getTopPassports&limit=50`);
-                if (topResponse.ok) {
-                    const topData = await topResponse.json();
-                    if (topData.success && topData.passports) {
-                        const passport = topData.passports.find(p => p.passportNumber === passportNumber);
-                        if (passport && passport.username && passport.username !== 'Unknown') {
-                            userEmailCache.set(passportNumber, passport.username);
-                            return passport.username;
-                        }
-                    }
-                }
                 userEmailCache.set(passportNumber, 'Unknown');
                 return 'Unknown';
             } catch (error) {
                 return 'Unknown';
             }
         }
-
+        
         async function stopRefillOnExtension(passportNumber, extensionId) {
-            const confirmed = confirm(`🛑 Stop all refills for passport: ${passportNumber}?\n\nExtension: ${extensionId}\n\nThis will:\n• Stop all future refills\n• Remove this passport from active timers\n\nAre you sure?`);
+            const confirmed = confirm(`🛑 Stop all refills for passport: ${passportNumber}?\n\nExtension: ${extensionId.substring(0, 12)}...\n\nThis will:\n• Stop all future refills\n• Remove this passport from active timers\n\nAre you sure?`);
             if (!confirmed) return false;
-            showToast(`⏳ Stopping refill for ${passportNumber} on ${extensionId}...`, 'info');
+            
+            showToast(`⏳ Stopping refill for ${passportNumber}...`, 'info');
+            
             try {
                 const response = await sendToExtension(extensionId, { action: 'stopIndividualRefill', passportNumber: passportNumber });
                 if (response && response.success) {
                     showToast(`✅ Successfully stopped refill for ${passportNumber}`, 'success');
+                    await refreshActiveRefills();
                     return true;
                 } else {
-                    showToast(`❌ Failed to stop refill for ${passportNumber}: ${response?.error || 'Unknown error'}`, 'error');
+                    showToast(`❌ Failed to stop refill: ${response?.error || 'Unknown error'}`, 'error');
                     return false;
                 }
             } catch (error) {
@@ -516,79 +617,14 @@
                 return false;
             }
         }
-
-        const API_URL = 'https://script.google.com/macros/s/AKfycbxXyqNuYBf2yTH304gVVjCs6D2kmh5ozWSdGb2NckrjCeV4KaHb9rhztGwWJLFPlgcU/exec';
-        let charts = {};
-        let activeRefills = [];
-        let extensionOwnership = new Map();
-
-        const COUNTRY_CYCLE = ['Saudi Arabia', 'Bahrain', 'UAE', 'Oman'];
-
-        function getNextCountry(currentCountry, originalCountry) {
-            if (!currentCountry) return originalCountry || 'Saudi Arabia';
-            const currentIndex = COUNTRY_CYCLE.indexOf(currentCountry);
-            if (currentIndex === -1) return originalCountry || 'Saudi Arabia';
-            const nextIndex = (currentIndex + 1) % COUNTRY_CYCLE.length;
-            return COUNTRY_CYCLE[nextIndex];
-        }
-
-        async function refreshActiveRefills() {
-            try {
-                extensionOwnership = await getExtensionOwnership();
-                const timers = await getAllActiveTimers();
-                if (timers && timers.length > 0) {
-                    for (const timer of timers) {
-                        if (!userEmailCache.has(timer.passport)) {
-                            const email = await getUserEmail(timer.passport);
-                            userEmailCache.set(timer.passport, email);
-                        }
-                        timer.username = userEmailCache.get(timer.passport) || 'Unknown';
-                        const originalCountry = timer.originalTravelCountry || 'Saudi Arabia';
-                        const nextRefillNumber = timer.refillCount + 1;
-                        let nextCountry = originalCountry;
-                        if (nextRefillNumber > 0) {
-                            let tempCountry = originalCountry;
-                            for (let i = 0; i < nextRefillNumber; i++) {
-                                const currentIdx = COUNTRY_CYCLE.indexOf(tempCountry);
-                                const nextIdx = (currentIdx + 1) % COUNTRY_CYCLE.length;
-                                tempCountry = COUNTRY_CYCLE[nextIdx];
-                            }
-                            nextCountry = tempCountry;
-                        }
-                        timer.nextCountry = nextCountry;
-                    }
-                    activeRefills = timers;
-                    updateActiveRefillsTable(activeRefills);
-                    document.getElementById('activeRefillCount').textContent = activeRefills.length;
-                } else {
-                    updateActiveRefillsTable([]);
-                    document.getElementById('activeRefillCount').textContent = '0';
-                }
-            } catch (error) {
-                console.error('Error fetching active refills:', error);
-                const tbody = document.getElementById('activeRefillsBody');
-                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">⚠️ No extensions connected. Make sure at least one extension is installed and active.</td></tr>';
-                document.getElementById('activeRefillCount').textContent = '0';
-            }
-        }
-
-        function getExtensionIdForPassport(passportNumber) {
-            if (extensionOwnership.has(passportNumber)) {
-                return extensionOwnership.get(passportNumber);
-            }
-            const activeTimer = activeRefills.find(t => t.passport === passportNumber);
-            if (activeTimer && activeTimer.extensionId) {
-                return activeTimer.extensionId;
-            }
-            return EXTENSION_IDS[0] ? EXTENSION_IDS[0].substring(0, 8) + '...' : 'Unknown';
-        }
-
+        
         function updateActiveRefillsTable(timers) {
             const tbody = document.getElementById('activeRefillsBody');
             if (!timers || timers.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">✅ No active refill timers</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">✅ No active refill timers<br><small>Timers start automatically when a payment is detected on wafid.com</small></td></tr>';
                 return;
             }
+            
             tbody.innerHTML = '';
             timers.forEach(timer => {
                 const row = tbody.insertRow();
@@ -599,13 +635,16 @@
                 if (hours > 0) timeDisplay = `${hours}h ${minutes}m ${seconds}s`;
                 else if (minutes > 0) timeDisplay = `${minutes}m ${seconds}s`;
                 else timeDisplay = `${seconds}s`;
+                
                 const progress = (timer.refillCount / timer.totalRefills) * 100;
                 const statusText = timer.isRetry ? '🔄 Retrying' : (timer.remainingSeconds > 0 ? '⏰ Waiting' : '⚡ Ready');
                 const statusClass = timer.isRetry ? 'status-active' : 'status-running';
-                const nextCountryDisplay = timer.nextCountry || 'Calculating...';
+                const nextCountryDisplay = timer.nextCountry || (timer.originalTravelCountry || 'Saudi Arabia');
+                const shortExtensionId = timer.extensionId ? timer.extensionId.substring(0, 12) + '...' : 'Unknown';
+                
                 row.insertCell(0).innerHTML = `<strong>${escapeHtml(timer.passport)}</strong>`;
                 row.insertCell(1).innerHTML = `<span style="font-size: 12px;">${escapeHtml(timer.username || 'Unknown')}</span>`;
-                row.insertCell(2).innerHTML = `<span style="font-size: 10px; font-family: monospace;">${escapeHtml(timer.extensionId || 'Unknown')}</span>`;
+                row.insertCell(2).innerHTML = `<span style="font-size: 10px; font-family: monospace;" title="${escapeHtml(timer.extensionId)}">${escapeHtml(shortExtensionId)}</span>`;
                 row.insertCell(3).innerHTML = `${timer.refillCount}/${timer.totalRefills} <div class="progress-bar" style="margin-top: 5px;"><div class="progress-fill" style="width: ${progress}%;"></div></div>`;
                 row.insertCell(4).textContent = timer.totalRefills;
                 row.insertCell(5).innerHTML = `<span style="font-weight: 600; ${timer.remainingSeconds < 60 ? 'color: #dc3545;' : ''}">${timeDisplay}</span>`;
@@ -614,7 +653,7 @@
                 row.insertCell(8).innerHTML = `<button class="stop-btn" onclick="stopRefillOnExtension('${escapeHtml(timer.passport)}', '${escapeHtml(timer.extensionId)}')">🛑 Stop</button>`;
             });
         }
-
+        
         function showToast(message, type = 'info') {
             const toast = document.createElement('div');
             toast.className = `toast-message toast-${type}`;
@@ -625,12 +664,27 @@
                 setTimeout(() => toast.remove(), 300);
             }, 3000);
         }
-
+        
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+        
+        // Dashboard data functions
+        const API_URL = 'https://script.google.com/macros/s/AKfycbxXyqNuYBf2yTH304gVVjCs6D2kmh5ozWSdGb2NckrjCeV4KaHb9rhztGwWJLFPlgcU/exec';
+        let charts = {};
+        
         async function refreshData() {
             const errorDiv = document.getElementById('errorMsg');
             const loadingDiv = document.getElementById('loadingMsg');
             errorDiv.style.display = 'none';
             loadingDiv.style.display = 'block';
+            
             try {
                 const response = await fetch(`${API_URL}?action=getDashboardData`);
                 if (!response.ok) {
@@ -646,21 +700,13 @@
                 }
             } catch (error) {
                 console.error('Error:', error);
-                errorDiv.innerHTML = `⚠️ Error: ${error.message}. Make sure your Apps Script is deployed as a Web App.`;
+                errorDiv.innerHTML = `⚠️ Error: ${error.message}`;
                 errorDiv.style.display = 'block';
-                const cached = localStorage.getItem('dashboardCache');
-                if (cached) {
-                    const { data, timestamp } = JSON.parse(cached);
-                    if (Date.now() - timestamp < 300000) {
-                        updateDashboard(data);
-                        errorDiv.innerHTML += `<br>📦 Showing cached data from ${new Date(timestamp).toLocaleString()}`;
-                    }
-                }
             } finally {
                 loadingDiv.style.display = 'none';
             }
         }
-
+        
         function updateDashboard(data) {
             const statsGrid = document.getElementById('statsGrid');
             statsGrid.innerHTML = `
@@ -695,14 +741,14 @@
                     <div class="label">Avg Links/Passport</div>
                 </div>
             `;
+            
             updateCountryChart(data.countryStats);
             updateDailyChart(data.dailyActivity);
             updateCountryStatsGrid(data.countryStats);
             updateTopPassportsTable(data.topPassports || []);
             updateRecentActivityTable(data.recentActivity || []);
-            localStorage.setItem('dashboardCache', JSON.stringify({ data: data, timestamp: Date.now() }));
         }
-
+        
         function updateCountryChart(countryStats) {
             const ctx = document.getElementById('countryChart').getContext('2d');
             const allowedCountries = ['Saudi Arabia', 'Bahrain', 'UAE', 'Oman'];
@@ -712,10 +758,10 @@
             charts.countryChart = new Chart(ctx, {
                 type: 'bar',
                 data: { labels: countries, datasets: [{ label: 'Payment Links', data: links, backgroundColor: ['#667eea', '#764ba2', '#f093fb', '#f5576c'], borderWidth: 1 }] },
-                options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'Number of Links' } } } }
+                options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true } } }
             });
         }
-
+        
         function updateDailyChart(dailyActivity) {
             const ctx = document.getElementById('dailyChart').getContext('2d');
             const dates = dailyActivity.map(d => d.date);
@@ -727,44 +773,24 @@
                 options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true } } }
             });
         }
-
+        
         function updateCountryStatsGrid(countryStats) {
             const container = document.getElementById('countryStats');
             container.innerHTML = '';
             const allowedCountries = ['Saudi Arabia', 'Bahrain', 'UAE', 'Oman'];
             for (const country of allowedCountries) {
                 const stats = countryStats[country] || { passportsCount: 0, totalLinks: 0, totalRate: 0 };
-                const passportCount = stats.passportsCount || stats.passports || 0;
-                const linkCount = stats.totalLinks || 0;
-                const avgPerPassport = passportCount > 0 ? (linkCount / passportCount).toFixed(1) : 0;
-                const progressWidth = Math.min(100, (linkCount / (passportCount || 1)) * 20);
                 container.innerHTML += `
                     <div class="country-card">
                         <h4>${getCountryFlag(country)} ${country}</h4>
-                        <div class="country-stats">
-                            <span>📋 Passports:</span>
-                            <strong>${passportCount}</strong>
-                        </div>
-                        <div class="country-stats">
-                            <span>🔗 Links:</span>
-                            <strong>${linkCount}</strong>
-                        </div>
-                        <div class="country-stats">
-                            <span>🔄 Avg/Passport:</span>
-                            <strong>${avgPerPassport}</strong>
-                        </div>
-                        <div class="country-stats">
-                            <span>💰 Total Rate:</span>
-                            <strong>${(stats.totalRate || 0).toFixed(2)}</strong>
-                        </div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width: ${progressWidth}%;"></div>
-                        </div>
+                        <div class="country-stats"><span>📋 Passports:</span><strong>${stats.passportsCount || 0}</strong></div>
+                        <div class="country-stats"><span>🔗 Links:</span><strong>${stats.totalLinks || 0}</strong></div>
+                        <div class="country-stats"><span>💰 Total Rate:</span><strong>${(stats.totalRate || 0).toFixed(2)}</strong></div>
                     </div>
                 `;
             }
         }
-
+        
         function updateTopPassportsTable(passports) {
             const tbody = document.getElementById('topPassportsBody');
             tbody.innerHTML = '';
@@ -774,18 +800,17 @@
             }
             passports.slice(0, 20).forEach(p => {
                 const row = tbody.insertRow();
-                const extId = getExtensionIdForPassport(p.passportNumber);
                 row.insertCell(0).innerHTML = `<strong>${escapeHtml(p.passportNumber)}</strong>`;
-                row.insertCell(1).innerHTML = `<span style="font-size: 12px;">${escapeHtml(p.username || 'Unknown')}</span>`;
-                row.insertCell(2).innerHTML = `<span style="font-size: 10px; font-family: monospace;" title="${escapeHtml(extId)}">${escapeHtml(extId.length > 15 ? extId.substring(0, 12) + '...' : extId)}</span>`;
+                row.insertCell(1).innerHTML = escapeHtml(p.username || 'Unknown');
+                row.insertCell(2).innerHTML = `<span style="font-size: 10px; font-family: monospace;">${escapeHtml(p.extensionId ? p.extensionId.substring(0, 12) + '...' : 'Unknown')}</span>`;
                 row.insertCell(3).textContent = p.totalLinks || 0;
                 row.insertCell(4).textContent = p.refillCount || 0;
                 row.insertCell(5).textContent = p.rate || 'N/A';
                 row.insertCell(6).innerHTML = `<span class="status-badge status-active">${p.status || 'active'}</span>`;
-                row.insertCell(7).innerHTML = `<button class="stop-btn" onclick="stopRefillOnExtension('${escapeHtml(p.passportNumber)}', '${escapeHtml(extId)}')">🛑 Stop</button>`;
+                row.insertCell(7).innerHTML = `<button class="stop-btn" onclick="stopRefillOnExtension('${escapeHtml(p.passportNumber)}', '${escapeHtml(p.extensionId || EXTENSION_IDS[0])}')">🛑 Stop</button>`;
             });
         }
-
+        
         function updateRecentActivityTable(activities) {
             const tbody = document.getElementById('recentActivityBody');
             tbody.innerHTML = '';
@@ -795,44 +820,38 @@
             }
             activities.slice(0, 30).forEach(activity => {
                 const row = tbody.insertRow();
-                const extId = getExtensionIdForPassport(activity.passportNumber);
                 row.insertCell(0).textContent = new Date(activity.timestamp).toLocaleString();
                 row.insertCell(1).innerHTML = `<strong>${escapeHtml(activity.passportNumber)}</strong>`;
-                row.insertCell(2).innerHTML = `<span style="font-size: 12px;">${escapeHtml(activity.username || 'Unknown')}</span>`;
-                row.insertCell(3).innerHTML = `<span style="font-size: 10px; font-family: monospace;" title="${escapeHtml(extId)}">${escapeHtml(extId.length > 15 ? extId.substring(0, 12) + '...' : extId)}</span>`;
+                row.insertCell(2).innerHTML = escapeHtml(activity.username || 'Unknown');
+                row.insertCell(3).innerHTML = `<span style="font-size: 10px; font-family: monospace;">${escapeHtml(activity.extensionId ? activity.extensionId.substring(0, 12) + '...' : 'Unknown')}</span>`;
                 row.insertCell(4).textContent = activity.country || 'N/A';
                 row.insertCell(5).innerHTML = activity.isOriginal ? '<span class="status-badge status-active">Original</span>' : `<span class="status-badge">Refill ${activity.refillNumber}</span>`;
                 row.insertCell(6).textContent = activity.rate || 'N/A';
             });
         }
-
+        
         function getCountryFlag(country) {
             const flags = { 'Saudi Arabia': '🇸🇦', 'Bahrain': '🇧🇭', 'UAE': '🇦🇪', 'Oman': '🇴🇲' };
             return flags[country] || '🌍';
         }
-
-        function escapeHtml(str) {
-            if (!str) return '';
-            return str.replace(/[&<>]/g, function(m) {
-                if (m === '&') return '&amp;';
-                if (m === '<') return '&lt;';
-                if (m === '>') return '&gt;';
-                return m;
-            });
-        }
-
-        let refreshInterval;
-        function startAutoRefresh() {
-            if (refreshInterval) clearInterval(refreshInterval);
-            refreshInterval = setInterval(() => {
-                refreshData();
-                refreshActiveRefills();
+        
+        // Initialize dashboard
+        async function initialize() {
+            console.log('🚀 Initializing WafidFill Dashboard...');
+            console.log(`📡 Monitoring ${EXTENSION_IDS.length} extensions`);
+            
+            await refreshData();
+            await refreshActiveRefills();
+            
+            // Auto-refresh every 30 seconds
+            setInterval(async () => {
+                await refreshData();
+                await refreshActiveRefills();
             }, 30000);
         }
-
-        refreshData();
-        refreshActiveRefills();
-        startAutoRefresh();
+        
+        // Start the dashboard
+        initialize();
     </script>
 </body>
 </html>
