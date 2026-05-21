@@ -459,32 +459,38 @@
     </div>
 
     <script>
-        // Add to your dashboard HTML - this connects to the extension bridge
+       // ============= EXTENSION BRIDGE COMMUNICATION =============
 const EXTENSION_BRIDGE_URL = 'chrome-extension://bilafpipilcghdnkdlbggeabkdajdjob/dashboard-bridge.html';
 
-// Function to send message to extension via bridge
 let bridgeWindow = null;
 let messageId = 0;
 const pendingBridgeRequests = new Map();
+let extensionConnected = false;
 
 async function sendToExtensionViaBridge(action, data = {}) {
     return new Promise((resolve, reject) => {
+        // If bridge window doesn't exist or is closed, create it
         if (!bridgeWindow || bridgeWindow.closed) {
-            // Open bridge if not open
-            bridgeWindow = window.open(EXTENSION_BRIDGE_URL, 'WafidFillBridge', 'width=400,height=600');
+            bridgeWindow = window.open(EXTENSION_BRIDGE_URL, 'WafidFillBridge', 'width=450,height=650');
+            
+            if (!bridgeWindow) {
+                reject(new Error('Popup blocked! Please allow popups for this site.'));
+                return;
+            }
             
             // Wait for bridge to load
+            let attempts = 0;
+            const maxAttempts = 20;
             const checkInterval = setInterval(() => {
-                if (bridgeWindow && !bridgeWindow.closed) {
+                attempts++;
+                if (bridgeWindow && !bridgeWindow.closed && bridgeWindow.document && bridgeWindow.document.body) {
                     clearInterval(checkInterval);
                     sendMessage();
+                } else if (attempts >= maxAttempts) {
+                    clearInterval(checkInterval);
+                    reject(new Error('Bridge failed to load. Please refresh and try again.'));
                 }
             }, 500);
-            
-            setTimeout(() => {
-                clearInterval(checkInterval);
-                reject(new Error('Bridge window failed to open'));
-            }, 5000);
             
             function sendMessage() {
                 const id = ++messageId;
@@ -493,7 +499,7 @@ async function sendToExtensionViaBridge(action, data = {}) {
                 const timeout = setTimeout(() => {
                     if (pendingBridgeRequests.has(id)) {
                         pendingBridgeRequests.delete(id);
-                        reject(new Error('Request timeout'));
+                        reject(new Error('Request timeout - bridge not responding'));
                     }
                 }, 30000);
                 
@@ -532,7 +538,7 @@ async function sendToExtensionViaBridge(action, data = {}) {
 
 // Listen for responses from bridge
 window.addEventListener('message', (event) => {
-    if (event.data.type === 'EXTENSION_RESPONSE') {
+    if (event.data && event.data.type === 'EXTENSION_RESPONSE') {
         const { messageId, success, data } = event.data;
         const pending = pendingBridgeRequests.get(messageId);
         if (pending) {
@@ -547,7 +553,6 @@ window.addEventListener('message', (event) => {
     }
 });
 
-// Replace your existing sendToExtension function with:
 async function sendToExtension(message) {
     try {
         return await sendToExtensionViaBridge(message.action, message);
@@ -557,35 +562,41 @@ async function sendToExtension(message) {
     }
 }
 
-// Also add a function to check if bridge is available
 async function checkExtensionConnection() {
     try {
         const response = await sendToExtensionViaBridge('ping', {});
         if (response && response.status === 'active') {
+            extensionConnected = true;
             document.getElementById('connectionDot').className = 'status-dot';
             document.getElementById('connectionStatus').textContent = 'Extension Connected';
-            document.getElementById('extensionIdDisplay').textContent = response.activeUrl ? `🌐 Connected` : '';
+            document.getElementById('extensionIdDisplay').textContent = '✅ Bridge active';
             return true;
         }
     } catch (error) {
-        console.log('Extension not available');
+        console.log('Extension not available:', error);
     }
+    extensionConnected = false;
     document.getElementById('connectionDot').className = 'status-dot disconnected';
-    document.getElementById('connectionStatus').textContent = 'Click "Connect Extension" button';
+    document.getElementById('connectionStatus').innerHTML = '❌ Extension Not Connected - <button onclick="connectExtension()" style="background: none; border: 1px solid white; color: white; padding: 2px 8px; border-radius: 4px; cursor: pointer;">Connect</button>';
+    document.getElementById('extensionIdDisplay').textContent = '';
     return false;
 }
 
-// Add a connect button to your dashboard HTML
-// Add this to the extension-selector div:
-// <button id="connectExtensionBtn" class="refresh-btn" style="background: #28a745;">🔌 Connect Extension</button>
-
-document.getElementById('connectExtensionBtn')?.addEventListener('click', async () => {
-    const bridgeWindow = window.open(EXTENSION_BRIDGE_URL, 'WafidFillBridge', 'width=400,height=600');
-    showToast('Please keep the bridge window open', 'info');
+function connectExtension() {
+    if (bridgeWindow && !bridgeWindow.closed) {
+        bridgeWindow.close();
+    }
+    bridgeWindow = null;
+    showToast('Opening bridge window... Please allow popups.', 'info');
     setTimeout(() => {
         checkExtensionConnection();
-    }, 2000);
-});
+    }, 1000);
+}
+
+// Add connect button handler
+document.getElementById('connectExtensionBtn')?.addEventListener('click', connectExtension);
+
+// Rest of your dashboard functions (refreshActiveRefills, stopRefill, etc.) remain the same...
         const API_URL = 'https://script.google.com/macros/s/AKfycbxXyqNuYBf2yTH304gVVjCs6D2kmh5ozWSdGb2NckrjCeV4KaHb9rhztGwWJLFPlgcU/exec';
         let charts = {};
         let activeRefills = [];
