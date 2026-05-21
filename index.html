@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WafidFill Monitoring Dashboard</title>
     <style>
-          * {
+        * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
@@ -321,7 +321,7 @@
                 font-size: 1.5rem;
             }
         }
-        /* ... (keep existing styles) ... */
+
         .extension-selector {
             background: white;
             border-radius: 15px;
@@ -333,15 +333,6 @@
             justify-content: space-between;
             flex-wrap: wrap;
             gap: 15px;
-        }
-        
-        .extension-selector select {
-            padding: 8px 15px;
-            border-radius: 8px;
-            border: 1px solid #ddd;
-            font-size: 14px;
-            background: white;
-            cursor: pointer;
         }
         
         .connection-status {
@@ -375,6 +366,20 @@
         .stop-all-btn:hover {
             background: #c82333;
         }
+        
+        .connect-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        
+        .connect-btn:hover {
+            background: #218838;
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -393,6 +398,7 @@
                 <span id="extensionIdDisplay" style="font-family: monospace; font-size: 11px; color: #666;"></span>
             </div>
             <div>
+                <button id="connectExtensionBtn" class="connect-btn">🔌 Connect Extension</button>
                 <button class="refresh-btn" onclick="refreshAllData()">🔄 Refresh All</button>
                 <button class="stop-all-btn" onclick="stopAllActiveRefills()">🛑 Stop All Refills</button>
             </div>
@@ -459,46 +465,70 @@
     </div>
 
     <script>
-       // ============= EXTENSION BRIDGE COMMUNICATION =============
-const EXTENSION_BRIDGE_URL = 'chrome-extension://bilafpipilcghdnkdlbggeabkdajdjob/dashboard-bridge.html';
-
-let bridgeWindow = null;
-let messageId = 0;
-const pendingBridgeRequests = new Map();
-
-async function sendToExtensionViaBridge(action, data = {}) {
-    return new Promise((resolve, reject) => {
-        // If bridge window doesn't exist or is closed, create it
-        if (!bridgeWindow || bridgeWindow.closed) {
-            bridgeWindow = window.open(EXTENSION_BRIDGE_URL, 'WafidFillBridge', 'width=450,height=650');
-            
-            if (!bridgeWindow) {
-                reject(new Error('Popup blocked! Please allow popups for this site.'));
-                return;
-            }
-            
-            // Wait for bridge to load
-            let attempts = 0;
-            const maxAttempts = 20;
-            const checkInterval = setInterval(() => {
-                attempts++;
-                if (bridgeWindow && !bridgeWindow.closed && bridgeWindow.document && bridgeWindow.document.body) {
-                    clearInterval(checkInterval);
-                    sendMessage();
-                } else if (attempts >= maxAttempts) {
-                    clearInterval(checkInterval);
-                    reject(new Error('Bridge failed to load. Please refresh and try again.'));
+        // ============= EXTENSION BRIDGE COMMUNICATION (ONLY VERSION) =============
+        const EXTENSION_BRIDGE_URL = 'chrome-extension://bilafpipilcghdnkdlbggeabkdajdjob/dashboard-bridge.html';
+        
+        let bridgeWindow = null;
+        let messageId = 0;
+        let extensionConnected = false;
+        const pendingBridgeRequests = new Map();
+        let activeRefills = [];
+        let charts = {};
+        const API_URL = 'https://script.google.com/macros/s/AKfycbxXyqNuYBf2yTH304gVVjCs6D2kmh5ozWSdGb2NckrjCeV4KaHb9rhztGwWJLFPlgcU/exec';
+        
+        async function sendToExtensionViaBridge(action, data = {}) {
+            return new Promise((resolve, reject) => {
+                if (!bridgeWindow || bridgeWindow.closed) {
+                    bridgeWindow = window.open(EXTENSION_BRIDGE_URL, 'WafidFillBridge', 'width=450,height=650');
+                    
+                    if (!bridgeWindow) {
+                        reject(new Error('Popup blocked! Please allow popups for this site.'));
+                        return;
+                    }
+                    
+                    let attempts = 0;
+                    const maxAttempts = 20;
+                    const checkInterval = setInterval(() => {
+                        attempts++;
+                        if (bridgeWindow && !bridgeWindow.closed && bridgeWindow.document && bridgeWindow.document.body) {
+                            clearInterval(checkInterval);
+                            sendMessage();
+                        } else if (attempts >= maxAttempts) {
+                            clearInterval(checkInterval);
+                            reject(new Error('Bridge failed to load. Please refresh and try again.'));
+                        }
+                    }, 500);
+                    
+                    function sendMessage() {
+                        const id = ++messageId;
+                        pendingBridgeRequests.set(id, { resolve, reject });
+                        
+                        const timeout = setTimeout(() => {
+                            if (pendingBridgeRequests.has(id)) {
+                                pendingBridgeRequests.delete(id);
+                                reject(new Error('Request timeout - bridge not responding'));
+                            }
+                        }, 30000);
+                        
+                        bridgeWindow.postMessage({
+                            type: 'EXTENSION_REQUEST',
+                            messageId: id,
+                            action: action,
+                            data: data
+                        }, '*');
+                        
+                        pendingBridgeRequests.get(id).timeout = timeout;
+                    }
+                    return;
                 }
-            }, 500);
-            
-            function sendMessage() {
+                
                 const id = ++messageId;
                 pendingBridgeRequests.set(id, { resolve, reject });
                 
                 const timeout = setTimeout(() => {
                     if (pendingBridgeRequests.has(id)) {
                         pendingBridgeRequests.delete(id);
-                        reject(new Error('Request timeout - bridge not responding'));
+                        reject(new Error('Request timeout'));
                     }
                 }, 30000);
                 
@@ -510,134 +540,42 @@ async function sendToExtensionViaBridge(action, data = {}) {
                 }, '*');
                 
                 pendingBridgeRequests.get(id).timeout = timeout;
-            }
-            return;
-        }
-        
-        const id = ++messageId;
-        pendingBridgeRequests.set(id, { resolve, reject });
-        
-        const timeout = setTimeout(() => {
-            if (pendingBridgeRequests.has(id)) {
-                pendingBridgeRequests.delete(id);
-                reject(new Error('Request timeout'));
-            }
-        }, 30000);
-        
-        bridgeWindow.postMessage({
-            type: 'EXTENSION_REQUEST',
-            messageId: id,
-            action: action,
-            data: data
-        }, '*');
-        
-        pendingBridgeRequests.get(id).timeout = timeout;
-    });
-}
-
-// Listen for responses from bridge
-window.addEventListener('message', (event) => {
-    if (event.data && event.data.type === 'EXTENSION_RESPONSE') {
-        const { messageId, success, data } = event.data;
-        const pending = pendingBridgeRequests.get(messageId);
-        if (pending) {
-            clearTimeout(pending.timeout);
-            pendingBridgeRequests.delete(messageId);
-            if (success) {
-                pending.resolve(data);
-            } else {
-                pending.reject(new Error(data?.error || 'Request failed'));
-            }
-        }
-    }
-});
-
-async function sendToExtension(message) {
-    try {
-        return await sendToExtensionViaBridge(message.action, message);
-    } catch (error) {
-        console.error('Bridge communication error:', error);
-        return { success: false, error: error.message };
-    }
-}
-
-async function checkExtensionConnection() {
-    try {
-        const response = await sendToExtensionViaBridge('ping', {});
-        if (response && response.status === 'active') {
-            extensionConnected = true;
-            document.getElementById('connectionDot').className = 'status-dot';
-            document.getElementById('connectionStatus').textContent = 'Extension Connected';
-            document.getElementById('extensionIdDisplay').textContent = '✅ Bridge active';
-            return true;
-        }
-    } catch (error) {
-        console.log('Extension not available:', error);
-    }
-    extensionConnected = false;
-    document.getElementById('connectionDot').className = 'status-dot disconnected';
-    document.getElementById('connectionStatus').innerHTML = '❌ Extension Not Connected - <button onclick="connectExtension()" style="background: none; border: 1px solid white; color: white; padding: 2px 8px; border-radius: 4px; cursor: pointer;">Connect</button>';
-    document.getElementById('extensionIdDisplay').textContent = '';
-    return false;
-}
-
-function connectExtension() {
-    if (bridgeWindow && !bridgeWindow.closed) {
-        bridgeWindow.close();
-    }
-    bridgeWindow = null;
-    showToast('Opening bridge window... Please allow popups.', 'info');
-    setTimeout(() => {
-        checkExtensionConnection();
-    }, 1000);
-}
-
-// Add connect button handler
-document.getElementById('connectExtensionBtn')?.addEventListener('click', connectExtension);
-
-// Rest of your dashboard functions (refreshActiveRefills, stopRefill, etc.) remain the same...
-        const API_URL = 'https://script.google.com/macros/s/AKfycbxXyqNuYBf2yTH304gVVjCs6D2kmh5ozWSdGb2NckrjCeV4KaHb9rhztGwWJLFPlgcU/exec';
-        let charts = {};
-        let activeRefills = [];
-        let extensionConnected = false;
-        
-        // ============= EXTENSION COMMUNICATION =============
-        function sendToExtension(message) {
-            return new Promise((resolve) => {
-                if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
-                    try {
-                        chrome.runtime.sendMessage(message, (response) => {
-                            if (chrome.runtime.lastError) {
-                                resolve({ success: false, error: chrome.runtime.lastError.message });
-                            } else {
-                                resolve(response || { success: false });
-                            }
-                        });
-                    } catch (error) {
-                        resolve({ success: false, error: error.message });
-                    }
-                } else {
-                    resolve({ success: false, error: 'Extension not available' });
-                }
             });
         }
         
+        // Listen for responses from bridge
+        window.addEventListener('message', (event) => {
+            if (event.data && event.data.type === 'EXTENSION_RESPONSE') {
+                const { messageId, success, data } = event.data;
+                const pending = pendingBridgeRequests.get(messageId);
+                if (pending) {
+                    clearTimeout(pending.timeout);
+                    pendingBridgeRequests.delete(messageId);
+                    if (success) {
+                        pending.resolve(data);
+                    } else {
+                        pending.reject(new Error(data?.error || 'Request failed'));
+                    }
+                }
+            }
+        });
+        
         async function checkExtensionConnection() {
             try {
-                const response = await sendToExtension({ action: 'ping' });
+                const response = await sendToExtensionViaBridge('ping', {});
                 if (response && response.status === 'active') {
                     extensionConnected = true;
                     document.getElementById('connectionDot').className = 'status-dot';
-                    document.getElementById('connectionStatus').textContent = 'Extension Connected';
-                    document.getElementById('extensionIdDisplay').textContent = response.activeUrl ? `🌐 ${response.activeUrl.substring(0, 40)}...` : '';
+                    document.getElementById('connectionStatus').innerHTML = 'Extension Connected';
+                    document.getElementById('extensionIdDisplay').textContent = '✅ Bridge active';
                     return true;
                 }
             } catch (error) {
-                console.log('Extension not available');
+                console.log('Extension not available:', error);
             }
             extensionConnected = false;
             document.getElementById('connectionDot').className = 'status-dot disconnected';
-            document.getElementById('connectionStatus').textContent = 'Extension Not Connected';
+            document.getElementById('connectionStatus').innerHTML = '❌ Not Connected - Click Connect';
             document.getElementById('extensionIdDisplay').textContent = '';
             return false;
         }
@@ -649,13 +587,13 @@ document.getElementById('connectExtensionBtn')?.addEventListener('click', connec
             
             if (!extensionConnected) {
                 const tbody = document.getElementById('activeRefillsBody');
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">⚠️ Extension not connected. Make sure the WafidFill extension is installed and active.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">⚠️ Extension not connected. Click "Connect Extension" button.</td></tr>';
                 document.getElementById('activeRefillCount').textContent = '0';
                 return;
             }
             
             try {
-                const response = await sendToExtension({ action: 'getAllActiveRefillsForDashboard' });
+                const response = await sendToExtensionViaBridge('getAllActiveRefillsForDashboard', {});
                 if (response && response.success && response.timers) {
                     activeRefills = response.timers;
                     updateActiveRefillsTable(activeRefills);
@@ -678,17 +616,13 @@ document.getElementById('connectExtensionBtn')?.addEventListener('click', connec
                 return;
             }
             
-            const confirmed = confirm(`🛑 Stop all refills for passport: ${passportNumber}?\n\nThis will:\n• Stop all future refills\n• Remove this passport from active timers\n\nAre you sure?`);
+            const confirmed = confirm(`🛑 Stop all refills for passport: ${passportNumber}?\n\nThis will stop all future refills and remove this passport from active timers.\n\nAre you sure?`);
             if (!confirmed) return;
             
             showToast(`⏳ Stopping refill for ${passportNumber}...`, 'info');
             
             try {
-                const response = await sendToExtension({ 
-                    action: 'stopRefillFromDashboard', 
-                    passportNumber: passportNumber 
-                });
-                
+                const response = await sendToExtensionViaBridge('stopRefillFromDashboard', { passportNumber: passportNumber });
                 if (response && response.success) {
                     showToast(`✅ Successfully stopped refill for ${passportNumber}`, 'success');
                     await refreshActiveRefills();
@@ -720,10 +654,7 @@ document.getElementById('connectExtensionBtn')?.addEventListener('click', connec
             
             for (const timer of activeRefills) {
                 try {
-                    const response = await sendToExtension({ 
-                        action: 'stopRefillFromDashboard', 
-                        passportNumber: timer.passport 
-                    });
+                    const response = await sendToExtensionViaBridge('stopRefillFromDashboard', { passportNumber: timer.passport });
                     if (response && response.success) successCount++;
                     await new Promise(r => setTimeout(r, 500));
                 } catch (error) {
@@ -768,14 +699,13 @@ document.getElementById('connectExtensionBtn')?.addEventListener('click', connec
             });
         }
         
-        // Keep existing dashboard functions (refreshData, updateDashboard, etc.)
         async function refreshData() {
             const errorDiv = document.getElementById('errorMsg');
             const loadingDiv = document.getElementById('loadingMsg');
             errorDiv.style.display = 'none';
             loadingDiv.style.display = 'block';
             try {
-                const response = await fetch(`${API_URL}?action=getDashboardData`);
+                const response = await fetch(`${API_URL}?action=getDashboardData&t=${Date.now()}`);
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
                 if (data.success) {
@@ -799,8 +729,17 @@ document.getElementById('connectExtensionBtn')?.addEventListener('click', connec
             await Promise.all([refreshData(), refreshActiveRefills()]);
         }
         
-        // Copy the existing updateDashboard, updateCountryChart, updateDailyChart, etc. functions here
-        // (keeping all the existing chart and table update functions)
+        function connectExtension() {
+            if (bridgeWindow && !bridgeWindow.closed) {
+                bridgeWindow.close();
+            }
+            bridgeWindow = null;
+            showToast('Opening bridge window... Please allow popups.', 'info');
+            setTimeout(() => {
+                checkExtensionConnection();
+                refreshActiveRefills();
+            }, 2000);
+        }
         
         function updateDashboard(data) {
             const statsGrid = document.getElementById('statsGrid');
@@ -909,6 +848,7 @@ document.getElementById('connectExtensionBtn')?.addEventListener('click', connec
         }
         
         // Initialize
+        document.getElementById('connectExtensionBtn')?.addEventListener('click', connectExtension);
         checkExtensionConnection();
         refreshAllData();
         setInterval(refreshAllData, 30000);
