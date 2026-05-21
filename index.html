@@ -32,6 +32,7 @@
         
         .container { max-width: 1600px; margin: 0 auto; }
         
+        /* Header Styles */
         .header {
             text-align: center;
             color: white;
@@ -56,6 +57,7 @@
         
         .header p { font-size: 1.1rem; opacity: 0.9; }
         
+        /* Status Bar */
         .status-bar {
             background: white;
             border-radius: 20px;
@@ -89,7 +91,10 @@
             animation: pulse 1.5s infinite;
         }
         
-        .last-updated { color: var(--gray); font-size: 13px; }
+        .last-updated {
+            color: var(--gray);
+            font-size: 13px;
+        }
         
         .refresh-btn {
             background: linear-gradient(135deg, var(--primary), var(--secondary));
@@ -110,22 +115,7 @@
             box-shadow: 0 5px 20px rgba(102,126,234,0.4);
         }
         
-        .connect-btn {
-            background: linear-gradient(135deg, var(--success), var(--success-dark));
-            color: white;
-            border: none;
-            padding: 10px 25px;
-            border-radius: 40px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-        
-        .connect-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(40,167,69,0.4);
-        }
-        
+        /* Stats Grid */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -154,7 +144,11 @@
             background: linear-gradient(90deg, var(--primary), var(--secondary));
         }
         
-        .stat-card:hover { transform: translateY(-5px); box-shadow: 0 20px 40px rgba(0,0,0,0.15); }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        }
+        
         .stat-card .icon { font-size: 2.5rem; margin-bottom: 10px; }
         .stat-card .value { font-size: 2.2rem; font-weight: 800; color: var(--primary); }
         .stat-card .label { color: var(--gray); margin-top: 5px; font-size: 0.85rem; font-weight: 500; }
@@ -168,6 +162,7 @@
             color: var(--success);
         }
         
+        /* Charts Grid */
         .charts-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
@@ -192,6 +187,7 @@
         
         canvas { max-height: 250px; width: 100%; }
         
+        /* Country Grid */
         .country-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -212,6 +208,7 @@
         .country-stats { display: flex; justify-content: space-between; margin-bottom: 12px; padding: 8px 0; border-bottom: 1px solid var(--border); }
         .country-stats:last-child { border-bottom: none; }
         
+        /* Table Card */
         .table-card {
             background: white;
             border-radius: 20px;
@@ -273,9 +270,26 @@
             padding: 0 20px 20px 20px;
         }
         
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 15px 12px; text-align: left; border-bottom: 1px solid var(--border); }
-        th { background: #f8fafc; color: var(--dark); font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 15px 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        th {
+            background: #f8fafc;
+            color: var(--dark);
+            font-weight: 700;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
         tr:hover td { background: #faf5ff; }
         
         .status-badge {
@@ -375,14 +389,13 @@
                 <span>🔄 Loading data...</span>
             </div>
             <div class="last-updated" id="lastUpdated">📅 Last Updated: --</div>
-            <div>
-                <button id="connectBridgeBtn" class="connect-btn">🔌 Connect Extension</button>
-                <button class="refresh-btn" onclick="refreshAllData()">🔄 Refresh Now</button>
-            </div>
+            <button class="refresh-btn" onclick="refreshAllData()">🔄 Refresh Now</button>
         </div>
 
+        <!-- Stats from Google Sheets -->
         <div class="stats-grid" id="statsGrid"></div>
 
+        <!-- Charts from Google Sheets -->
         <div class="charts-grid">
             <div class="chart-card">
                 <h3>📈 Payment Links by Country</h3>
@@ -394,8 +407,10 @@
             </div>
         </div>
 
+        <!-- Country Stats from Google Sheets -->
         <div class="country-grid" id="countryStats"></div>
 
+        <!-- Active Refills from GitHub -->
         <div class="table-card">
             <div class="table-header">
                 <h3>⏰ Active Refill Timers <span class="count-badge" id="activeRefillCount">0</span></h3>
@@ -406,165 +421,39 @@
                     <thead>
                         <tr><th>Passport</th><th>Progress</th><th>Time Left</th><th>Next Country</th><th>Status</th><th>Action</th></tr>
                     </thead>
-                    <tbody id="activeRefillsBody"><tr><td colspan="6" style="text-align: center; padding: 60px;"><div class="empty-state"><div class="emoji">📡</div><div>Loading active refills...</div></div></td></tr> </tbody>
+                    <tbody id="activeRefillsBody"><tr><td colspan="6" style="text-align: center; padding: 60px;"><div class="empty-state"><div class="emoji">📡</div><div>Loading active refills...</div></div></td></tr></tbody>
                 </table>
             </div>
         </div>
 
+        <!-- Top Passports from Google Sheets -->
         <div class="table-card">
-            <div class="table-header"><h3>🏆 Top Passports by Activity</h3></div>
-            <div class="table-wrapper"><table id="topPassportsTable"><thead><tr><th>Passport</th><th>Username</th><th>Total Links</th><th>Refills</th><th>Rate</th></tr></thead><tbody id="topPassportsBody"><tr><td colspan="5" style="text-align: center; padding: 40px;">Loading...</td></tr> </tbody></table></div>
+            <div class="table-header">
+                <h3>🏆 Top Passports by Activity</h3>
+            </div>
+            <div class="table-wrapper">
+                <table id="topPassportsTable">
+                    <thead><tr><th>Passport</th><th>Username</th><th>Total Links</th><th>Refills</th><th>Rate</th></tr></thead>
+                    <tbody id="topPassportsBody"><tr><td colspan="5" style="text-align: center; padding: 40px;">Loading...</td></tr></tbody>
+                </table>
+            </div>
         </div>
 
+        <!-- Recent Activity from Google Sheets -->
         <div class="table-card">
-            <div class="table-header"><h3>⏰ Recent Activity</h3></div>
-            <div class="table-wrapper"><table id="recentActivityTable"><thead><tr><th>Time</th><th>Passport</th><th>Username</th><th>Country</th><th>Type</th><th>Rate</th></tr></thead><tbody id="recentActivityBody"><tr><td colspan="6" style="text-align: center; padding: 40px;">Loading...</td></tr> </tbody></table></div>
+            <div class="table-header">
+                <h3>⏰ Recent Activity</h3>
+            </div>
+            <div class="table-wrapper">
+                <table id="recentActivityTable">
+                    <thead><tr><th>Time</th><th>Passport</th><th>Username</th><th>Country</th><th>Type</th><th>Rate</th></tr></thead>
+                    <tbody id="recentActivityBody"><tr><td colspan="6" style="text-align: center; padding: 40px;">Loading...</td></tr></tbody>
+                </table>
+            </div>
         </div>
     </div>
 
     <script>
-        // ============= EXTENSION BRIDGE COMMUNICATION =============
-        const EXTENSION_BRIDGE_URL = 'chrome-extension://bilafpipilcghdnkdlbggeabkdajdjob/dashboard-bridge.html';
-        
-        let bridgeWindow = null;
-        let messageId = 0;
-        let extensionConnected = false;
-        const pendingBridgeRequests = new Map();
-
-        async function sendToExtensionViaBridge(action, data = {}) {
-            return new Promise((resolve, reject) => {
-                if (!bridgeWindow || bridgeWindow.closed) {
-                    bridgeWindow = window.open(EXTENSION_BRIDGE_URL, 'WafidFillBridge', 'width=450,height=650');
-                    if (!bridgeWindow) {
-                        reject(new Error('Popup blocked! Please click "Connect Extension" button.'));
-                        return;
-                    }
-                    
-                    let attempts = 0;
-                    const maxAttempts = 20;
-                    const checkInterval = setInterval(() => {
-                        attempts++;
-                        if (bridgeWindow && !bridgeWindow.closed && bridgeWindow.document && bridgeWindow.document.body) {
-                            clearInterval(checkInterval);
-                            sendMessage();
-                        } else if (attempts >= maxAttempts) {
-                            clearInterval(checkInterval);
-                            reject(new Error('Bridge failed to load. Please refresh and try again.'));
-                        }
-                    }, 500);
-                    
-                    function sendMessage() {
-                        const id = ++messageId;
-                        pendingBridgeRequests.set(id, { resolve, reject });
-                        const timeout = setTimeout(() => {
-                            if (pendingBridgeRequests.has(id)) {
-                                pendingBridgeRequests.delete(id);
-                                reject(new Error('Request timeout'));
-                            }
-                        }, 30000);
-                        bridgeWindow.postMessage({ type: 'EXTENSION_REQUEST', messageId: id, action: action, data: data }, '*');
-                        pendingBridgeRequests.get(id).timeout = timeout;
-                    }
-                    return;
-                }
-                
-                const id = ++messageId;
-                pendingBridgeRequests.set(id, { resolve, reject });
-                const timeout = setTimeout(() => {
-                    if (pendingBridgeRequests.has(id)) {
-                        pendingBridgeRequests.delete(id);
-                        reject(new Error('Request timeout'));
-                    }
-                }, 30000);
-                bridgeWindow.postMessage({ type: 'EXTENSION_REQUEST', messageId: id, action: action, data: data }, '*');
-                pendingBridgeRequests.get(id).timeout = timeout;
-            });
-        }
-
-        window.addEventListener('message', (event) => {
-            if (event.data && event.data.type === 'EXTENSION_RESPONSE') {
-                const { messageId, success, data } = event.data;
-                const pending = pendingBridgeRequests.get(messageId);
-                if (pending) {
-                    clearTimeout(pending.timeout);
-                    pendingBridgeRequests.delete(messageId);
-                    if (success) {
-                        pending.resolve(data);
-                    } else {
-                        pending.reject(new Error(data?.error || 'Request failed'));
-                    }
-                }
-            }
-        });
-
-        async function checkExtensionConnection() {
-            try {
-                const response = await sendToExtensionViaBridge('ping', {});
-                if (response && response.status === 'active') {
-                    extensionConnected = true;
-                    document.getElementById('syncStatus').innerHTML = `<span class="pulse" style="background:#28a745;"></span><span>✅ Extension Connected</span>`;
-                    document.getElementById('syncStatus').style.background = '#e8f5e9';
-                    return true;
-                }
-            } catch (error) {
-                console.log('Extension not available:', error);
-            }
-            extensionConnected = false;
-            document.getElementById('syncStatus').innerHTML = `<span class="pulse" style="background:#dc3545;"></span><span>⚠️ Extension Not Connected - Click "Connect Extension"</span>`;
-            document.getElementById('syncStatus').style.background = '#fff3cd';
-            return false;
-        }
-
-        async function sendToExtension(message) {
-            if (!extensionConnected) {
-                await checkExtensionConnection();
-            }
-            if (!extensionConnected) {
-                return { success: false, error: 'Extension not connected' };
-            }
-            try {
-                return await sendToExtensionViaBridge(message.action, message);
-            } catch (error) {
-                console.error('Bridge communication error:', error);
-                return { success: false, error: error.message };
-            }
-        }
-
-        // ============= STOP REFILL FUNCTIONS =============
-        async function stopRefill(passportNumber) {
-            if (!extensionConnected) {
-                showToast('❌ Extension not connected. Click "Connect Extension" first.', 'error');
-                return;
-            }
-            if (!confirm(`🛑 Stop refills for ${passportNumber}?`)) return;
-            showToast(`⏳ Stopping ${passportNumber}...`, 'info');
-            const response = await sendToExtension({ action: 'stopRefillFromDashboard', passportNumber: passportNumber });
-            if (response?.success) {
-                showToast(`✅ Stopped ${passportNumber}`, 'success');
-                setTimeout(refreshAllData, 2000);
-            } else {
-                showToast(`❌ Failed: ${response?.error || 'Unknown error'}`, 'error');
-            }
-        }
-
-        async function stopAllActiveRefills() {
-            if (!extensionConnected) {
-                showToast('❌ Extension not connected. Click "Connect Extension" first.', 'error');
-                return;
-            }
-            if (currentTimers.length === 0) { showToast('No active refills', 'info'); return; }
-            if (!confirm(`🛑 STOP ALL ${currentTimers.length} REFILLS?`)) return;
-            showToast(`⏳ Stopping ${currentTimers.length} refills...`, 'info');
-            let success = 0;
-            for (const timer of currentTimers) {
-                const response = await sendToExtension({ action: 'stopRefillFromDashboard', passportNumber: timer.passport });
-                if (response?.success) success++;
-                await new Promise(r => setTimeout(r, 500));
-            }
-            showToast(`✅ Stopped ${success}/${currentTimers.length}`, success > 0 ? 'success' : 'error');
-            setTimeout(refreshAllData, 2000);
-        }
-
         // ============= CONFIGURATION =============
         const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/maap3254/wafidfill-dashboard/main/active_refills.json';
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxXyqNuYBf2yTH304gVVjCs6D2kmh5ozWSdGb2NckrjCeV4KaHb9rhztGwWJLFPlgcU/exec';
@@ -575,7 +464,9 @@
 
         const COUNTRY_CYCLE = ['Saudi Arabia', 'Bahrain', 'UAE', 'Oman'];
         const COUNTRY_FLAGS = { 'Saudi Arabia': '🇸🇦', 'Bahrain': '🇧🇭', 'UAE': '🇦🇪', 'Oman': '🇴🇲' };
+        const COUNTRY_COLORS = { 'Saudi Arabia': '#2e7d32', 'Bahrain': '#1565c0', 'UAE': '#e65100', 'Oman': '#6a1b9a' };
 
+        // ============= HELPER FUNCTIONS =============
         function formatTime(seconds) {
             if (!seconds || seconds <= 0) return { text: 'Ready now', isUrgent: true };
             const hours = Math.floor(seconds / 3600);
@@ -609,6 +500,7 @@
 
         function updateStatsFromSheet(data) {
             if (!data || !data.success) return;
+            
             const stats = data.stats;
             document.getElementById('statsGrid').innerHTML = `
                 <div class="stat-card"><div class="icon">📋</div><div class="value">${stats.totalPassports || 0}</div><div class="label">Total Passports</div></div>
@@ -626,6 +518,7 @@
             const countries = allowed.filter(c => countryStats && countryStats[c]);
             const links = countries.map(c => countryStats[c]?.totalLinks || 0);
             const colors = ['#667eea', '#764ba2', '#f093fb', '#f5576c'];
+            
             if (charts.countryChart) charts.countryChart.destroy();
             charts.countryChart = new Chart(ctx, {
                 type: 'bar',
@@ -638,6 +531,7 @@
             const ctx = document.getElementById('dailyChart').getContext('2d');
             const dates = dailyActivity?.map(d => d.date) || [];
             const counts = dailyActivity?.map(d => d.count) || [];
+            
             if (charts.dailyChart) charts.dailyChart.destroy();
             charts.dailyChart = new Chart(ctx, {
                 type: 'line',
@@ -649,6 +543,7 @@
         function updateCountryStatsGrid(countryStats) {
             const container = document.getElementById('countryStats');
             if (!countryStats) return;
+            
             container.innerHTML = '';
             const allowed = ['Saudi Arabia', 'Bahrain', 'UAE', 'Oman'];
             for (const country of allowed) {
@@ -667,7 +562,10 @@
 
         function updateTopPassports(passports) {
             const tbody = document.getElementById('topPassportsBody');
-            if (!passports || passports.length === 0) { tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No data available</td></tr>'; return; }
+            if (!passports || passports.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No data available</td></tr>';
+                return;
+            }
             tbody.innerHTML = '';
             passports.slice(0, 15).forEach(p => {
                 const row = tbody.insertRow();
@@ -681,7 +579,10 @@
 
         function updateRecentActivity(activities) {
             const tbody = document.getElementById('recentActivityBody');
-            if (!activities || activities.length === 0) { tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No recent activity</td></tr>'; return; }
+            if (!activities || activities.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No recent activity</td></tr>';
+                return;
+            }
             tbody.innerHTML = '';
             activities.slice(0, 25).forEach(a => {
                 const row = tbody.insertRow();
@@ -706,6 +607,42 @@
             }
         }
 
+        async function sendToExtension(message) {
+            return new Promise((resolve) => {
+                try {
+                    if (!chrome.runtime?.id) { resolve({ success: false, error: 'Extension not available' }); return; }
+                    chrome.runtime.sendMessage(message, (response) => {
+                        if (chrome.runtime.lastError) resolve({ success: false, error: chrome.runtime.lastError.message });
+                        else resolve(response || { success: false });
+                    });
+                } catch (error) { resolve({ success: false, error: error.message }); }
+            });
+        }
+
+        async function stopRefill(passportNumber) {
+            if (!confirm(`🛑 Stop refills for ${passportNumber}?`)) return;
+            showToast(`⏳ Stopping ${passportNumber}...`, 'info');
+            const response = await sendToExtension({ action: 'stopRefillFromDashboard', passportNumber });
+            if (response?.success) {
+                showToast(`✅ Stopped ${passportNumber}`, 'success');
+                setTimeout(refreshAllData, 2000);
+            } else showToast(`❌ Failed: ${response?.error}`, 'error');
+        }
+
+        async function stopAllActiveRefills() {
+            if (currentTimers.length === 0) { showToast('No active refills', 'info'); return; }
+            if (!confirm(`🛑 STOP ALL ${currentTimers.length} REFILLS?`)) return;
+            showToast(`⏳ Stopping ${currentTimers.length} refills...`, 'info');
+            let success = 0;
+            for (const timer of currentTimers) {
+                const response = await sendToExtension({ action: 'stopRefillFromDashboard', passportNumber: timer.passport });
+                if (response?.success) success++;
+                await new Promise(r => setTimeout(r, 300));
+            }
+            showToast(`✅ Stopped ${success}/${currentTimers.length}`, success > 0 ? 'success' : 'error');
+            setTimeout(refreshAllData, 2000);
+        }
+
         function updateActiveRefillsTable(timers) {
             currentTimers = timers;
             const tbody = document.getElementById('activeRefillsBody');
@@ -714,6 +651,7 @@
                 document.getElementById('activeRefillCount').textContent = '0';
                 return;
             }
+            
             tbody.innerHTML = '';
             timers.sort((a, b) => a.remainingSeconds - b.remainingSeconds);
             timers.forEach(timer => {
@@ -723,6 +661,7 @@
                 const statusInfo = getStatusInfo(timer.remainingSeconds, timer.isRetry);
                 const nextCountry = timer.nextCountry || COUNTRY_CYCLE[(timer.refillCount) % COUNTRY_CYCLE.length];
                 const flag = COUNTRY_FLAGS[nextCountry] || '🌍';
+                
                 row.insertCell(0).innerHTML = `<strong style="font-family: monospace;">${escapeHtml(timer.passport)}</strong>`;
                 row.insertCell(1).innerHTML = `<div style="display: flex; align-items: center; gap: 10px;"><span style="font-size:12px;">${timer.refillCount}/${timer.totalRefills}</span><div class="progress-container"><div class="progress-bar"><div class="progress-fill" style="width: ${progress}%;"></div></div></div></div>`;
                 row.insertCell(2).innerHTML = `<span style="${timeInfo.isUrgent ? 'color:#dc3545;font-weight:700;' : ''}">${timeInfo.text}</span>`;
@@ -737,6 +676,7 @@
         async function refreshAllData() {
             try {
                 const [sheetData, gitData] = await Promise.all([fetchSheetData(), fetchGitHubData()]);
+                
                 if (sheetData?.success) {
                     updateStatsFromSheet(sheetData);
                     updateCountryChart(sheetData.countryStats);
@@ -746,15 +686,23 @@
                     updateRecentActivity(sheetData.recentActivity);
                     document.getElementById('lastUpdated').innerHTML = `📅 Last Updated: ${new Date().toLocaleString()}`;
                 }
+                
                 if (gitData && gitData.timers) {
-                    const timersWithNext = gitData.timers.map(t => ({ ...t, nextCountry: t.nextCountry || COUNTRY_CYCLE[(t.refillCount) % COUNTRY_CYCLE.length] }));
+                    const timersWithNext = gitData.timers.map(t => ({
+                        ...t,
+                        nextCountry: t.nextCountry || COUNTRY_CYCLE[(t.refillCount) % COUNTRY_CYCLE.length]
+                    }));
                     updateActiveRefillsTable(timersWithNext);
                 }
-                if (!extensionConnected) {
-                    await checkExtensionConnection();
-                }
+                
+                const syncDiv = document.getElementById('syncStatus');
+                syncDiv.innerHTML = `<span class="pulse" style="background:#28a745;"></span><span>✅ Live Data</span>`;
+                syncDiv.style.background = '#e8f5e9';
             } catch (error) {
                 console.error('Refresh error:', error);
+                const syncDiv = document.getElementById('syncStatus');
+                syncDiv.innerHTML = `<span class="pulse"></span><span>⚠️ Loading...</span>`;
+                syncDiv.style.background = '#fff3cd';
             }
         }
 
@@ -771,21 +719,7 @@
             return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
         }
 
-        // Connect button handler
-        document.getElementById('connectBridgeBtn').addEventListener('click', async () => {
-            if (bridgeWindow && !bridgeWindow.closed) {
-                bridgeWindow.close();
-            }
-            bridgeWindow = null;
-            showToast('Opening bridge window... Please allow popups.', 'info');
-            setTimeout(async () => {
-                await checkExtensionConnection();
-                refreshAllData();
-            }, 2000);
-        });
-
         // Initialize
-        checkExtensionConnection();
         refreshAllData();
         setInterval(refreshAllData, 15000);
         document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshAllData(); });
