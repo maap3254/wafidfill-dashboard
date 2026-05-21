@@ -2,13 +2,13 @@
   "timers": [
     {
       "passport": "EQ2574780F",
-      "remainingSeconds": 417,
+      "remainingSeconds": 357,
       "refillCount": 1,
       "totalRefills": 20,
       "status": "active",
-      "lastUpdated": 1779364890999
+      "lastUpdated": 1779364951007
     }
   ],
-  "lastUpdated": 1779364890999,
+  "lastUpdated": 1779364951007,
   "totalActive": 1
 }
