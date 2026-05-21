@@ -2,29 +2,29 @@
   "timers": [
     {
       "passport": "E00167666D",
-      "remainingSeconds": 2033,
+      "remainingSeconds": 1973,
       "refillCount": 0,
       "totalRefills": 20,
       "status": "active",
-      "lastUpdated": 1779329683977
-    },
-    {
-      "passport": "EQ1287805FFF",
-      "remainingSeconds": 0,
-      "refillCount": 1,
-      "totalRefills": 20,
-      "status": "active",
-      "lastUpdated": 1779329683977
+      "lastUpdated": 1779329743989
     },
     {
       "passport": "EQ1287805SS",
-      "remainingSeconds": 2506,
+      "remainingSeconds": 2446,
       "refillCount": 2,
       "totalRefills": 20,
       "status": "active",
-      "lastUpdated": 1779329683977
+      "lastUpdated": 1779329743989
+    },
+    {
+      "passport": "EQ1287805FFF",
+      "remainingSeconds": 113,
+      "refillCount": 1,
+      "totalRefills": 20,
+      "status": "retrying",
+      "lastUpdated": 1779329743989
     }
   ],
-  "lastUpdated": 1779329683977,
+  "lastUpdated": 1779329743989,
   "totalActive": 3
 }
