@@ -459,6 +459,133 @@
     </div>
 
     <script>
+        // Add to your dashboard HTML - this connects to the extension bridge
+const EXTENSION_BRIDGE_URL = 'chrome-extension://bilafpipilcghdnkdlbggeabkdajdjob/dashboard-bridge.html';
+
+// Function to send message to extension via bridge
+let bridgeWindow = null;
+let messageId = 0;
+const pendingBridgeRequests = new Map();
+
+async function sendToExtensionViaBridge(action, data = {}) {
+    return new Promise((resolve, reject) => {
+        if (!bridgeWindow || bridgeWindow.closed) {
+            // Open bridge if not open
+            bridgeWindow = window.open(EXTENSION_BRIDGE_URL, 'WafidFillBridge', 'width=400,height=600');
+            
+            // Wait for bridge to load
+            const checkInterval = setInterval(() => {
+                if (bridgeWindow && !bridgeWindow.closed) {
+                    clearInterval(checkInterval);
+                    sendMessage();
+                }
+            }, 500);
+            
+            setTimeout(() => {
+                clearInterval(checkInterval);
+                reject(new Error('Bridge window failed to open'));
+            }, 5000);
+            
+            function sendMessage() {
+                const id = ++messageId;
+                pendingBridgeRequests.set(id, { resolve, reject });
+                
+                const timeout = setTimeout(() => {
+                    if (pendingBridgeRequests.has(id)) {
+                        pendingBridgeRequests.delete(id);
+                        reject(new Error('Request timeout'));
+                    }
+                }, 30000);
+                
+                bridgeWindow.postMessage({
+                    type: 'EXTENSION_REQUEST',
+                    messageId: id,
+                    action: action,
+                    data: data
+                }, '*');
+                
+                pendingBridgeRequests.get(id).timeout = timeout;
+            }
+            return;
+        }
+        
+        const id = ++messageId;
+        pendingBridgeRequests.set(id, { resolve, reject });
+        
+        const timeout = setTimeout(() => {
+            if (pendingBridgeRequests.has(id)) {
+                pendingBridgeRequests.delete(id);
+                reject(new Error('Request timeout'));
+            }
+        }, 30000);
+        
+        bridgeWindow.postMessage({
+            type: 'EXTENSION_REQUEST',
+            messageId: id,
+            action: action,
+            data: data
+        }, '*');
+        
+        pendingBridgeRequests.get(id).timeout = timeout;
+    });
+}
+
+// Listen for responses from bridge
+window.addEventListener('message', (event) => {
+    if (event.data.type === 'EXTENSION_RESPONSE') {
+        const { messageId, success, data } = event.data;
+        const pending = pendingBridgeRequests.get(messageId);
+        if (pending) {
+            clearTimeout(pending.timeout);
+            pendingBridgeRequests.delete(messageId);
+            if (success) {
+                pending.resolve(data);
+            } else {
+                pending.reject(new Error(data?.error || 'Request failed'));
+            }
+        }
+    }
+});
+
+// Replace your existing sendToExtension function with:
+async function sendToExtension(message) {
+    try {
+        return await sendToExtensionViaBridge(message.action, message);
+    } catch (error) {
+        console.error('Bridge communication error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// Also add a function to check if bridge is available
+async function checkExtensionConnection() {
+    try {
+        const response = await sendToExtensionViaBridge('ping', {});
+        if (response && response.status === 'active') {
+            document.getElementById('connectionDot').className = 'status-dot';
+            document.getElementById('connectionStatus').textContent = 'Extension Connected';
+            document.getElementById('extensionIdDisplay').textContent = response.activeUrl ? `🌐 Connected` : '';
+            return true;
+        }
+    } catch (error) {
+        console.log('Extension not available');
+    }
+    document.getElementById('connectionDot').className = 'status-dot disconnected';
+    document.getElementById('connectionStatus').textContent = 'Click "Connect Extension" button';
+    return false;
+}
+
+// Add a connect button to your dashboard HTML
+// Add this to the extension-selector div:
+// <button id="connectExtensionBtn" class="refresh-btn" style="background: #28a745;">🔌 Connect Extension</button>
+
+document.getElementById('connectExtensionBtn')?.addEventListener('click', async () => {
+    const bridgeWindow = window.open(EXTENSION_BRIDGE_URL, 'WafidFillBridge', 'width=400,height=600');
+    showToast('Please keep the bridge window open', 'info');
+    setTimeout(() => {
+        checkExtensionConnection();
+    }, 2000);
+});
         const API_URL = 'https://script.google.com/macros/s/AKfycbxXyqNuYBf2yTH304gVVjCs6D2kmh5ozWSdGb2NckrjCeV4KaHb9rhztGwWJLFPlgcU/exec';
         let charts = {};
         let activeRefills = [];
