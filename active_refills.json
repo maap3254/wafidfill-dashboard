@@ -2,21 +2,21 @@
   "timers": [
     {
       "passport": "EQ1287805FFF",
-      "remainingSeconds": 1944,
+      "remainingSeconds": 1873,
       "refillCount": 0,
       "totalRefills": 20,
       "status": "active",
-      "lastUpdated": 1779323429519
+      "lastUpdated": 1779323500216
     },
     {
       "passport": "EQ1287805SS",
-      "remainingSeconds": 671,
+      "remainingSeconds": 601,
       "refillCount": 0,
       "totalRefills": 20,
       "status": "active",
-      "lastUpdated": 1779323429519
+      "lastUpdated": 1779323500216
     }
   ],
-  "lastUpdated": 1779323429519,
+  "lastUpdated": 1779323500216,
   "totalActive": 2
 }
