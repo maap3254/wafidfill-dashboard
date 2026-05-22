@@ -2,15 +2,15 @@
   "timers": [
     {
       "passport": "EQ1071657B",
-      "remainingSeconds": 120,
+      "remainingSeconds": 60,
       "refillCount": 4,
       "totalRefills": 20,
       "nextCountry": "Saudi Arabia",
       "status": "retrying",
       "extensionId": "unknown",
-      "lastUpdated": 1779487167529
+      "lastUpdated": 1779487227531
     }
   ],
-  "lastUpdated": 1779487167529,
+  "lastUpdated": 1779487227531,
   "totalActive": 1
 }
