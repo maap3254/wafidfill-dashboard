@@ -2,15 +2,15 @@
   "timers": [
     {
       "passport": "EQ1071657B",
-      "remainingSeconds": 0,
+      "remainingSeconds": 111,
       "refillCount": 3,
       "totalRefills": 20,
       "nextCountry": "Oman",
-      "status": "active",
+      "status": "retrying",
       "extensionId": "unknown",
-      "lastUpdated": 1779486807530
+      "lastUpdated": 1779486867517
     }
   ],
-  "lastUpdated": 1779486807530,
+  "lastUpdated": 1779486867517,
   "totalActive": 1
 }
