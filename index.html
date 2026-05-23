@@ -5,40 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WafidFill Monitoring Dashboard</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        /* --- Your existing CSS styles (keep them as they are) --- */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
         }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        .header {
-            text-align: center;
-            color: white;
-            margin-bottom: 30px;
-        }
-
-        .header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-        }
-
-        .header p {
-            font-size: 1.1rem;
-            opacity: 0.9;
-        }
-
+        .container { max-width: 1400px; margin: 0 auto; }
+        .header { text-align: center; color: white; margin-bottom: 30px; }
+        .header h1 { font-size: 2.5rem; margin-bottom: 10px; }
+        .header p { font-size: 1.1rem; opacity: 0.9; }
         .extension-info-bar {
             background: rgba(255,255,255,0.2);
             border-radius: 12px;
@@ -50,7 +28,6 @@
             flex-wrap: wrap;
             gap: 10px;
         }
-
         .extension-id-display {
             background: #1a1a2e;
             padding: 6px 15px;
@@ -59,7 +36,6 @@
             font-size: 12px;
             color: #4ecdc4;
         }
-
         .filter-badge {
             background: #28a745;
             padding: 6px 12px;
@@ -67,7 +43,6 @@
             font-size: 12px;
             font-weight: 600;
         }
-
         .last-updated-bar {
             text-align: right;
             margin-bottom: 20px;
@@ -77,12 +52,7 @@
             gap: 15px;
             flex-wrap: wrap;
         }
-
-        .last-updated {
-            color: white;
-            font-size: 0.9rem;
-        }
-
+        .last-updated { color: white; font-size: 0.9rem; }
         .refresh-btn {
             background: white;
             color: #667eea;
@@ -93,19 +63,13 @@
             font-weight: 600;
             transition: all 0.3s ease;
         }
-
-        .refresh-btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        }
-
+        .refresh-btn:hover { transform: scale(1.05); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 20px;
             margin-bottom: 30px;
         }
-
         .stat-card {
             background: white;
             border-radius: 15px;
@@ -114,61 +78,35 @@
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
             transition: transform 0.3s ease;
         }
-
-        .stat-card:hover {
-            transform: translateY(-5px);
-        }
-
-        .stat-card .icon {
-            font-size: 2rem;
-            margin-bottom: 10px;
-        }
-
-        .stat-card .value {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #667eea;
-        }
-
-        .stat-card .label {
-            color: #666;
-            margin-top: 5px;
-            font-size: 0.9rem;
-        }
-
+        .stat-card:hover { transform: translateY(-5px); }
+        .stat-card .icon { font-size: 2rem; margin-bottom: 10px; }
+        .stat-card .value { font-size: 2rem; font-weight: bold; color: #667eea; }
+        .stat-card .label { color: #666; margin-top: 5px; font-size: 0.9rem; }
         .charts-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
             gap: 20px;
             margin-bottom: 30px;
         }
-
         .chart-card {
             background: white;
             border-radius: 15px;
             padding: 20px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
         }
-
         .chart-card h3 {
             margin-bottom: 15px;
             color: #333;
             border-left: 4px solid #667eea;
             padding-left: 10px;
         }
-
-        canvas {
-            max-height: 300px;
-            width: 100%;
-        }
-
+        canvas { max-height: 300px; width: 100%; }
         .country-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 20px;
             margin-bottom: 30px;
         }
-
         .country-card {
             background: white;
             border-radius: 15px;
@@ -176,13 +114,7 @@
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
             border-top: 4px solid #667eea;
         }
-
-        .country-card h4 {
-            color: #667eea;
-            margin-bottom: 15px;
-            font-size: 1.2rem;
-        }
-
+        .country-card h4 { color: #667eea; margin-bottom: 15px; font-size: 1.2rem; }
         .country-stats {
             display: flex;
             justify-content: space-between;
@@ -190,7 +122,6 @@
             padding: 5px 0;
             border-bottom: 1px solid #eee;
         }
-
         .table-card {
             background: white;
             border-radius: 15px;
@@ -199,35 +130,16 @@
             margin-bottom: 30px;
             overflow-x: auto;
         }
-
         .table-card h3 {
             margin-bottom: 15px;
             color: #333;
             border-left: 4px solid #667eea;
             padding-left: 10px;
         }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #eee;
-        }
-
-        th {
-            background: #667eea;
-            color: white;
-            font-weight: 600;
-        }
-
-        tr:hover {
-            background: #f5f5f5;
-        }
-
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #667eea; color: white; font-weight: 600; }
+        tr:hover { background: #f5f5f5; }
         .status-badge {
             display: inline-block;
             padding: 4px 8px;
@@ -235,88 +147,19 @@
             font-size: 0.8rem;
             font-weight: 600;
         }
-
-        .status-active {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .status-retrying {
-            background: #fff3cd;
-            color: #856404;
-        }
-
-        .status-waiting {
-            background: #cfe2ff;
-            color: #084298;
-        }
-
-        .error {
-            background: #f8d7da;
-            color: #721c24;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            text-align: center;
-            display: none;
-        }
-
-        .warning {
-            background: #fff3cd;
-            color: #856404;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            text-align: center;
-            display: none;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 50px;
-            color: white;
-            font-size: 1.2rem;
-        }
-
-        .progress-bar {
-            background: #e0e0e0;
-            border-radius: 4px;
-            overflow: hidden;
-            margin-top: 10px;
-        }
-
-        .progress-fill {
-            background: #667eea;
-            height: 4px;
-            border-radius: 2px;
-            transition: width 0.3s;
-        }
-
-        @keyframes slideIn {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-
+        .status-active { background: #d4edda; color: #155724; }
+        .status-retrying { background: #fff3cd; color: #856404; }
+        .status-waiting { background: #cfe2ff; color: #084298; }
+        .error { background: #f8d7da; color: #721c24; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; display: none; }
+        .warning { background: #fff3cd; color: #856404; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; display: none; }
+        .loading { text-align: center; padding: 50px; color: white; font-size: 1.2rem; }
+        .progress-bar { background: #e0e0e0; border-radius: 4px; overflow: hidden; margin-top: 10px; }
+        .progress-fill { background: #667eea; height: 4px; border-radius: 2px; transition: width 0.3s; }
         @media (max-width: 768px) {
-            .charts-grid {
-                grid-template-columns: 1fr;
-            }
-            .stats-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            .header h1 {
-                font-size: 1.5rem;
-            }
-            .extension-info-bar {
-                flex-direction: column;
-                text-align: center;
-            }
+            .charts-grid { grid-template-columns: 1fr; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .header h1 { font-size: 1.5rem; }
+            .extension-info-bar { flex-direction: column; text-align: center; }
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -328,10 +171,9 @@
             <p>Real-time statistics for passport processing and payment links</p>
         </div>
 
-        <!-- Extension Info Bar -->
         <div class="extension-info-bar">
             <div class="extension-id-display" id="extensionIdDisplay">
-                🔑 Extension ID: Loading...
+                🔑 Extension ID: ogdijnjjlkidpjdoipaenelnihcbpnni
             </div>
             <div class="filter-badge">
                 🔒 Showing data only for this extension
@@ -348,447 +190,228 @@
         <div id="loadingMsg" class="loading" style="display: none;">Loading dashboard data...</div>
 
         <!-- Active Refills Section -->
-        <div class="table-card" id="activeRefillsSection">
+        <div class="table-card">
             <h3>⏰ Active Refill Timers <span id="activeRefillCount" style="font-size: 12px; background: #28a745; color: white; padding: 2px 8px; border-radius: 12px;">0</span></h3>
             <div style="overflow-x: auto;">
                 <table id="activeRefillsTable">
                     <thead>
-                        <tr><th>Passport Number</th><th>Refills Done</th><th>Total Refills</th><th>Remaining Time</th><th>Next Country</th><th>Status</th></tr>
+                        <tr><th>Passport Number</th><th>User Email</th><th>Refills Done</th><th>Total Refills</th><th>Remaining Time</th><th>Next Country</th><th>Status</th></tr>
                     </thead>
                     <tbody id="activeRefillsBody">
-                        <tr><td colspan="6" style="text-align: center;">Loading active refills...</div></div>
+                        <tr><td colspan="7" style="text-align: center;">Loading active refills...</div></div>
                     </tbody>
                 </table>
             </div>
         </div>
 
         <div class="stats-grid" id="statsGrid"></div>
-
         <div class="charts-grid">
-            <div class="chart-card">
-                <h3>📈 Links by Country</h3>
-                <canvas id="countryChart"></canvas>
-            </div>
-            <div class="chart-card">
-                <h3>📅 Daily Activity (Last 7 Days)</h3>
-                <canvas id="dailyChart"></canvas>
-            </div>
+            <div class="chart-card"><h3>📈 Links by Country</h3><canvas id="countryChart"></canvas></div>
+            <div class="chart-card"><h3>📅 Daily Activity (Last 7 Days)</h3><canvas id="dailyChart"></canvas></div>
         </div>
-
         <div class="country-grid" id="countryStats"></div>
-
-        <div class="table-card">
-            <h3>🏆 Top Passports by Activity</h3>
-            <div style="overflow-x: auto;">
-                <table id="topPassportsTable">
-                    <thead>
-                        <tr><th>Passport Number</th><th>Total Links</th><th>Refills</th><th>Rate</th><th>Status</th></tr>
-                    </thead>
-                    <tbody id="topPassportsBody"></tbody>
-                </table>
-            </div>
-        </div>
-
-        <div class="table-card">
-            <h3>⏰ Recent Activity</h3>
-            <div style="overflow-x: auto;">
-                <table id="recentActivityTable">
-                    <thead>
-                        <tr><th>Timestamp</th><th>Passport</th><th>Country</th><th>City</th><th>Link Type</th><th>Rate</th></tr>
-                    </thead>
-                    <tbody id="recentActivityBody"></tbody>
-                </table>
-            </div>
-        </div>
+        <div class="table-card"><h3>🏆 Top Passports by Activity</h3><table id="topPassportsTable"><thead><tr><th>Passport Number</th><th>Total Links</th><th>Refills</th><th>Rate</th><th>Status</th></tr></thead><tbody id="topPassportsBody"></tbody></table></div>
+        <div class="table-card"><h3>⏰ Recent Activity</h3><table id="recentActivityTable"><thead><tr><th>Timestamp</th><th>Passport</th><th>Country</th><th>City</th><th>Link Type</th><th>Rate</th></tr></thead><tbody id="recentActivityBody"></tbody></table></div>
     </div>
 
-    // Replace the dashboard script section with this
-<script>
-    // ============= YOUR EXTENSION ID =============
-    const MY_EXTENSION_ID = 'ogdijnjjlkidpjdoipaenelnihcbpnni';
-    
-    // ============= GOOGLE APPS SCRIPT URL =============
-    const API_URL = 'https://script.google.com/macros/s/AKfycbwqyow-kOvurZA89cfS5bxxrMdsjkbGXZfQjk0wmygpPLaOPXoGd-nhTHVkQbF6wp6J/exec';
-    
-    let charts = {};
-    let autoRefreshInterval;
+    <script>
+        // ============= YOUR GOOGLE APPS SCRIPT WEB APP URL =============
+        const API_URL = 'https://script.google.com/macros/s/AKfycbwqyow-kOvurZA89cfS5bxxrMdsjkbGXZfQjk0wmygpPLaOPXoGd-nhTHVkQbF6wp6J/exec';
+        
+        // ============= YOUR EXTENSION ID (for filtering) =============
+        const MY_EXTENSION_ID = 'ogdijnjjlkidpjdoipaenelnihcbpnni';
+        
+        let charts = {};
+        let autoRefreshInterval;
 
-    // Helper function to safely format numbers
-    function safeNumber(value, defaultValue = 0) {
-        const num = parseFloat(value);
-        return isNaN(num) ? defaultValue : num;
-    }
-
-    function safeToFixed(value, decimals = 2) {
-        const num = safeNumber(value);
-        return num.toFixed(decimals);
-    }
-
-    // Display extension ID
-    function updateExtensionDisplay() {
-        const displayEl = document.getElementById('extensionIdDisplay');
-        if (displayEl) {
-            const shortId = MY_EXTENSION_ID.length > 25 ? MY_EXTENSION_ID.substring(0, 25) + '...' : MY_EXTENSION_ID;
-            displayEl.innerHTML = `🔑 Extension ID: <strong>${shortId}</strong>`;
+        // Helper functions
+        function safeNumber(value, defaultValue = 0) { const num = parseFloat(value); return isNaN(num) ? defaultValue : num; }
+        function safeToFixed(value, decimals = 2) { return safeNumber(value).toFixed(decimals); }
+        function formatTimeRemaining(seconds) {
+            if (!seconds && seconds !== 0) return '--';
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            if (hours > 0) return `${hours}h ${minutes}m`;
+            if (minutes > 0) return `${minutes}m ${secs}s`;
+            return `${secs}s`;
         }
-    }
+        function escapeHtml(str) { if (!str) return ''; return String(str).replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;'); }
+        function getCountryFlag(country) { const flags = { 'Saudi Arabia': '🇸🇦', 'Bahrain': '🇧🇭', 'UAE': '🇦🇪', 'Oman': '🇴🇲' }; return flags[country] || '🌍'; }
 
-    // Refresh active refills from localStorage (set by extension popup)
-    async function refreshActiveRefills() {
-        try {
-            const storedRefills = localStorage.getItem('wafid_active_refills');
-            const lastUpdate = localStorage.getItem('wafid_active_refills_last_update');
-            
-            if (storedRefills) {
-                const timers = JSON.parse(storedRefills);
-                if (timers && timers.length > 0) {
-                    // Filter only recent timers (last 2 minutes)
-                    const now = Date.now();
-                    const recentTimers = timers.filter(t => (now - (t.timestamp || 0)) < 120000);
-                    
-                    if (recentTimers.length > 0) {
-                        updateActiveRefillsTable(recentTimers);
-                        document.getElementById('activeRefillCount').textContent = recentTimers.length;
-                        document.getElementById('warningMsg').style.display = 'none';
-                        return;
-                    }
+        // Refresh active refills from Google Sheets
+        async function refreshActiveRefills() {
+            try {
+                const response = await fetch(`${API_URL}?action=getActiveRefills&t=${Date.now()}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                
+                if (data.success && data.timers && data.timers.length > 0) {
+                    updateActiveRefillsTable(data.timers);
+                    document.getElementById('activeRefillCount').textContent = data.timers.length;
+                    document.getElementById('warningMsg').style.display = 'none';
+                } else {
+                    updateActiveRefillsTable([]);
+                    document.getElementById('activeRefillCount').textContent = '0';
+                    const warningMsg = document.getElementById('warningMsg');
+                    warningMsg.innerHTML = '⚠️ No active refill timers. Make a payment on Wafid.com to start refills.';
+                    warningMsg.style.display = 'block';
                 }
+            } catch (error) {
+                console.error('Error fetching active refills:', error);
+                updateActiveRefillsTable([]);
+                document.getElementById('activeRefillCount').textContent = '0';
+                const warningMsg = document.getElementById('warningMsg');
+                warningMsg.innerHTML = '⚠️ Error loading active refills. Ensure your Apps Script is deployed.';
+                warningMsg.style.display = 'block';
             }
-            
-            // No active refills found
-            updateActiveRefillsTable([]);
-            document.getElementById('activeRefillCount').textContent = '0';
-            const warningMsg = document.getElementById('warningMsg');
-            warningMsg.innerHTML = '⚠️ No active refill timers. Make a payment on Wafid.com to start refills.';
-            warningMsg.style.display = 'block';
-            
-        } catch (error) {
-            console.error('Error fetching active refills:', error);
-            updateActiveRefillsTable([]);
-            document.getElementById('activeRefillCount').textContent = '0';
         }
-    }
 
-    function formatTimeRemaining(seconds) {
-        if (!seconds && seconds !== 0) return '--';
-        const hours = Math.floor(seconds / 3600);
-        const minutes = Math.floor((seconds % 3600) / 60);
-        const secs = seconds % 60;
-        
-        if (hours > 0) return `${hours}h ${minutes}m`;
-        if (minutes > 0) return `${minutes}m ${secs}s`;
-        return `${secs}s`;
-    }
-
-    function updateActiveRefillsTable(timers) {
-        const tbody = document.getElementById('activeRefillsBody');
-        
-        if (!timers || timers.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">✅ No active refill timers</td></tr>';
-            return;
+        function updateActiveRefillsTable(timers) {
+            const tbody = document.getElementById('activeRefillsBody');
+            if (!timers || timers.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">✅ No active refill timers</div></div>';
+                return;
+            }
+            tbody.innerHTML = '';
+            timers.forEach(timer => {
+                const row = tbody.insertRow();
+                const timeDisplay = formatTimeRemaining(timer.remainingSeconds);
+                const progress = ((safeNumber(timer.refillCount)) / (safeNumber(timer.totalRefills) || 5)) * 100;
+                let statusClass = 'status-waiting', statusText = '⏰ Waiting';
+                if (timer.status === 'retrying') { statusClass = 'status-retrying'; statusText = '🔄 Retrying'; }
+                else if (timer.remainingSeconds < 60 && timer.remainingSeconds > 0) { statusClass = 'status-active'; statusText = '⚡ Soon'; }
+                
+                row.insertCell(0).innerHTML = `<strong>${escapeHtml(timer.passport)}</strong>`;
+                row.insertCell(1).innerHTML = `<span style="font-size: 12px;">${escapeHtml(timer.userEmail || 'Unknown')}</span>`;
+                row.insertCell(2).innerHTML = `${safeNumber(timer.refillCount)}/${safeNumber(timer.totalRefills) || 5} <div class="progress-bar"><div class="progress-fill" style="width: ${progress}%;"></div></div>`;
+                row.insertCell(3).textContent = timer.totalRefills || 5;
+                row.insertCell(4).innerHTML = `<span style="font-weight: 600; ${timer.remainingSeconds < 60 ? 'color: #dc3545;' : ''}">${timeDisplay}</span>`;
+                row.insertCell(5).innerHTML = `<strong style="color: #28a745;">${escapeHtml(timer.nextCountry || 'Calculating...')}</strong>`;
+                row.insertCell(6).innerHTML = `<span class="status-badge ${statusClass}">${statusText}</span>`;
+            });
         }
-        
-        tbody.innerHTML = '';
-        
-        timers.forEach(timer => {
-            const row = tbody.insertRow();
-            const timeDisplay = formatTimeRemaining(timer.remainingSeconds);
-            const progress = ((safeNumber(timer.refillCount)) / (safeNumber(timer.totalRefills) || 5)) * 100;
-            
-            let statusClass = 'status-waiting';
-            let statusText = '⏰ Waiting';
-            if (timer.isRetry) {
-                statusClass = 'status-retrying';
-                statusText = '🔄 Retrying';
-            } else if (timer.remainingSeconds < 60 && timer.remainingSeconds > 0) {
-                statusClass = 'status-active';
-                statusText = '⚡ Soon';
-            }
-            
-            row.insertCell(0).innerHTML = `<strong>${escapeHtml(timer.passport)}</strong>`;
-            row.insertCell(1).innerHTML = `${safeNumber(timer.refillCount)}/${safeNumber(timer.totalRefills) || 5} <div class="progress-bar"><div class="progress-fill" style="width: ${progress}%;"></div></div>`;
-            row.insertCell(2).textContent = timer.totalRefills || 5;
-            row.insertCell(3).innerHTML = `<span style="font-weight: 600; ${timer.remainingSeconds < 60 ? 'color: #dc3545;' : ''}">${timeDisplay}</span>`;
-            row.insertCell(4).innerHTML = `<strong style="color: #28a745;">${escapeHtml(timer.nextCountry || 'Calculating...')}</strong>`;
-            row.insertCell(5).innerHTML = `<span class="status-badge ${statusClass}">${statusText}</span>`;
-        });
-    }
 
-    // Refresh dashboard data from Google Sheets
-    async function refreshDashboardData() {
-        const errorDiv = document.getElementById('errorMsg');
-        const loadingDiv = document.getElementById('loadingMsg');
-        
-        errorDiv.style.display = 'none';
-        loadingDiv.style.display = 'block';
-        
-        try {
-            const response = await fetch(`${API_URL}?action=getDashboardData&t=${Date.now()}`);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                updateDashboard(data);
-                document.getElementById('lastUpdated').innerHTML = `Last Updated: ${new Date().toLocaleString()}`;
-                errorDiv.style.display = 'none';
-            } else {
-                throw new Error(data.error || 'Unknown error');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            errorDiv.innerHTML = `⚠️ Error: ${error.message}. Make sure your Apps Script is deployed as a Web App.`;
-            errorDiv.style.display = 'block';
-            
-            const cached = localStorage.getItem('dashboardCache');
-            if (cached) {
-                try {
-                    const { data, timestamp } = JSON.parse(cached);
-                    if (Date.now() - timestamp < 300000) {
-                        updateDashboard(data);
-                        errorDiv.innerHTML += `<br>📦 Showing cached data from ${new Date(timestamp).toLocaleString()}`;
-                    }
-                } catch (e) {}
-            }
-        } finally {
-            loadingDiv.style.display = 'none';
+        // Refresh dashboard data from Google Sheets
+        async function refreshDashboardData() {
+            const errorDiv = document.getElementById('errorMsg');
+            const loadingDiv = document.getElementById('loadingMsg');
+            errorDiv.style.display = 'none';
+            loadingDiv.style.display = 'block';
+            try {
+                const response = await fetch(`${API_URL}?action=getDashboardData&t=${Date.now()}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                if (data.success) {
+                    updateDashboard(data);
+                    document.getElementById('lastUpdated').innerHTML = `Last Updated: ${new Date().toLocaleString()}`;
+                } else throw new Error(data.error || 'Unknown error');
+            } catch (error) {
+                console.error('Error:', error);
+                errorDiv.innerHTML = `⚠️ Error: ${error.message}. Make sure your Apps Script is deployed as a Web App.`;
+                errorDiv.style.display = 'block';
+                const cached = localStorage.getItem('dashboardCache');
+                if (cached) {
+                    try {
+                        const { data, timestamp } = JSON.parse(cached);
+                        if (Date.now() - timestamp < 300000) { updateDashboard(data); errorDiv.innerHTML += `<br>📦 Showing cached data from ${new Date(timestamp).toLocaleString()}`; }
+                    } catch (e) {}
+                }
+            } finally { loadingDiv.style.display = 'none'; }
         }
-    }
 
-    function updateDashboard(data) {
-        const stats = data.stats || {};
-        const totalPassports = safeNumber(stats.totalPassports);
-        const totalLinks = safeNumber(stats.totalLinks);
-        const totalRefills = safeNumber(stats.totalRefills);
-        const totalRate = safeNumber(stats.totalRate);
-        const activeUsers = safeNumber(stats.activeUsers);
-        const avgLinksPerPassport = safeToFixed(stats.avgLinksPerPassport, 1);
-        
-        const statsGrid = document.getElementById('statsGrid');
-        statsGrid.innerHTML = `
-            <div class="stat-card">
-                <div class="icon">📋</div>
-                <div class="value">${totalPassports}</div>
-                <div class="label">Total Passports</div>
-            </div>
-            <div class="stat-card">
-                <div class="icon">🔗</div>
-                <div class="value">${totalLinks}</div>
-                <div class="label">Total Links</div>
-            </div>
-            <div class="stat-card">
-                <div class="icon">🔄</div>
-                <div class="value">${totalRefills}</div>
-                <div class="label">Total Refills</div>
-            </div>
-            <div class="stat-card">
-                <div class="icon">💰</div>
-                <div class="value">${totalRate.toFixed(2)}</div>
-                <div class="label">Total Rate</div>
-            </div>
-            <div class="stat-card">
-                <div class="icon">👥</div>
-                <div class="value">${activeUsers}</div>
-                <div class="label">Active Users</div>
-            </div>
-            <div class="stat-card">
-                <div class="icon">🌍</div>
-                <div class="value">${avgLinksPerPassport}</div>
-                <div class="label">Avg Links/Passport</div>
-            </div>
-        `;
-
-        updateCountryChart(data.countryStats);
-        updateDailyChart(data.dailyActivity);
-        updateCountryStatsGrid(data.countryStats);
-        updateTopPassportsTable(data.topPassports || []);
-        updateRecentActivityTable(data.recentActivity || []);
-        
-        localStorage.setItem('dashboardCache', JSON.stringify({
-            data: data,
-            timestamp: Date.now()
-        }));
-    }
-
-    function updateCountryChart(countryStats) {
-        const ctx = document.getElementById('countryChart').getContext('2d');
-        const allowedCountries = ['Saudi Arabia', 'Bahrain', 'UAE', 'Oman'];
-        const countries = allowedCountries.filter(c => countryStats && countryStats[c]);
-        const links = countries.map(c => safeNumber(countryStats?.[c]?.totalLinks));
-        
-        if (charts.countryChart) charts.countryChart.destroy();
-        
-        charts.countryChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: countries,
-                datasets: [{
-                    label: 'Payment Links',
-                    data: links,
-                    backgroundColor: ['#667eea', '#764ba2', '#f093fb', '#f5576c'],
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                scales: { y: { beginAtZero: true, title: { display: true, text: 'Number of Links' } } }
-            }
-        });
-    }
-
-    function updateDailyChart(dailyActivity) {
-        const ctx = document.getElementById('dailyChart').getContext('2d');
-        const dates = dailyActivity?.map(d => d.date) || [];
-        const counts = dailyActivity?.map(d => safeNumber(d.count)) || [];
-        
-        if (charts.dailyChart) charts.dailyChart.destroy();
-        
-        charts.dailyChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: dates,
-                datasets: [{
-                    label: 'Links Generated',
-                    data: counts,
-                    borderColor: '#667eea',
-                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                    fill: true,
-                    tension: 0.4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                scales: { y: { beginAtZero: true } }
-            }
-        });
-    }
-
-    function updateCountryStatsGrid(countryStats) {
-        const container = document.getElementById('countryStats');
-        container.innerHTML = '';
-        
-        const allowedCountries = ['Saudi Arabia', 'Bahrain', 'UAE', 'Oman'];
-        
-        for (const country of allowedCountries) {
-            const stats = countryStats?.[country] || { passportsCount: 0, totalLinks: 0, totalRate: 0 };
-            const passportCount = safeNumber(stats.passportsCount);
-            const linkCount = safeNumber(stats.totalLinks);
-            const avgPerPassport = passportCount > 0 ? (linkCount / passportCount).toFixed(1) : 0;
-            
-            container.innerHTML += `
-                <div class="country-card">
-                    <h4>${getCountryFlag(country)} ${country}</h4>
-                    <div class="country-stats">
-                        <span>📋 Passports:</span>
-                        <strong>${passportCount}</strong>
-                    </div>
-                    <div class="country-stats">
-                        <span>🔗 Links:</span>
-                        <strong>${linkCount}</strong>
-                    </div>
-                    <div class="country-stats">
-                        <span>🔄 Avg/Passport:</span>
-                        <strong>${avgPerPassport}</strong>
-                    </div>
-                    <div class="country-stats">
-                        <span>💰 Total Rate:</span>
-                        <strong>${safeToFixed(stats.totalRate, 2)}</strong>
-                    </div>
-                </div>
+        function updateDashboard(data) {
+            const stats = data.stats || {};
+            document.getElementById('statsGrid').innerHTML = `
+                <div class="stat-card"><div class="icon">📋</div><div class="value">${safeNumber(stats.totalPassports)}</div><div class="label">Total Passports</div></div>
+                <div class="stat-card"><div class="icon">🔗</div><div class="value">${safeNumber(stats.totalLinks)}</div><div class="label">Total Links</div></div>
+                <div class="stat-card"><div class="icon">🔄</div><div class="value">${safeNumber(stats.totalRefills)}</div><div class="label">Total Refills</div></div>
+                <div class="stat-card"><div class="icon">💰</div><div class="value">${safeNumber(stats.totalRate).toFixed(2)}</div><div class="label">Total Rate</div></div>
+                <div class="stat-card"><div class="icon">👥</div><div class="value">${safeNumber(stats.activeUsers)}</div><div class="label">Active Users (7d)</div></div>
+                <div class="stat-card"><div class="icon">🌍</div><div class="value">${safeToFixed(stats.avgLinksPerPassport, 1)}</div><div class="label">Avg Links/Passport</div></div>
             `;
+            updateCountryChart(data.countryStats);
+            updateDailyChart(data.dailyActivity);
+            updateCountryStatsGrid(data.countryStats);
+            updateTopPassportsTable(data.topPassports || []);
+            updateRecentActivityTable(data.recentActivity || []);
+            localStorage.setItem('dashboardCache', JSON.stringify({ data, timestamp: Date.now() }));
         }
-    }
 
-    function updateTopPassportsTable(passports) {
-        const tbody = document.getElementById('topPassportsBody');
-        tbody.innerHTML = '';
-        
-        if (!passports || passports.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No data available</td></tr>';
-            return;
+        function updateCountryChart(countryStats) {
+            const ctx = document.getElementById('countryChart').getContext('2d');
+            const allowed = ['Saudi Arabia', 'Bahrain', 'UAE', 'Oman'];
+            const labels = allowed.filter(c => countryStats?.[c]);
+            const data = labels.map(c => safeNumber(countryStats[c]?.totalLinks));
+            if (charts.countryChart) charts.countryChart.destroy();
+            charts.countryChart = new Chart(ctx, {
+                type: 'bar', data: { labels, datasets: [{ label: 'Payment Links', data, backgroundColor: ['#667eea', '#764ba2', '#f093fb', '#f5576c'] }] },
+                options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true } } }
+            });
         }
-        
-        passports.slice(0, 20).forEach(p => {
-            const row = tbody.insertRow();
-            const totalLinks = safeNumber(p.totalLinks);
-            const refillCount = safeNumber(p.refillCount);
-            const rate = safeNumber(p.rate);
-            
-            row.insertCell(0).innerHTML = `<strong>${escapeHtml(p.passportNumber)}</strong>`;
-            row.insertCell(1).textContent = totalLinks;
-            row.insertCell(2).textContent = refillCount;
-            row.insertCell(3).textContent = rate === 0 ? 'N/A' : rate;
-            row.insertCell(4).innerHTML = `<span class="status-badge status-active">${p.status || 'active'}</span>`;
-        });
-    }
 
-    function updateRecentActivityTable(activities) {
-        const tbody = document.getElementById('recentActivityBody');
-        tbody.innerHTML = '';
-        
-        if (!activities || activities.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No recent activity</td></tr>';
-            return;
+        function updateDailyChart(dailyActivity) {
+            const ctx = document.getElementById('dailyChart').getContext('2d');
+            const dates = dailyActivity?.map(d => d.date) || [];
+            const counts = dailyActivity?.map(d => safeNumber(d.count)) || [];
+            if (charts.dailyChart) charts.dailyChart.destroy();
+            charts.dailyChart = new Chart(ctx, {
+                type: 'line', data: { labels: dates, datasets: [{ label: 'Links Generated', data: counts, borderColor: '#667eea', fill: true, tension: 0.4 }] },
+                options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true } } }
+            });
         }
+
+        function updateCountryStatsGrid(countryStats) {
+            const container = document.getElementById('countryStats');
+            container.innerHTML = '';
+            const allowed = ['Saudi Arabia', 'Bahrain', 'UAE', 'Oman'];
+            for (const country of allowed) {
+                const s = countryStats?.[country] || {};
+                const passportCount = safeNumber(s.passportsCount);
+                const linkCount = safeNumber(s.totalLinks);
+                const avg = passportCount > 0 ? (linkCount / passportCount).toFixed(1) : 0;
+                container.innerHTML += `<div class="country-card"><h4>${getCountryFlag(country)} ${country}</h4>
+                    <div class="country-stats"><span>📋 Passports:</span><strong>${passportCount}</strong></div>
+                    <div class="country-stats"><span>🔗 Links:</span><strong>${linkCount}</strong></div>
+                    <div class="country-stats"><span>🔄 Avg/Passport:</span><strong>${avg}</strong></div>
+                    <div class="country-stats"><span>💰 Total Rate:</span><strong>${safeToFixed(s.totalRate, 2)}</strong></div></div>`;
+            }
+        }
+
+        function updateTopPassportsTable(passports) {
+            const tbody = document.getElementById('topPassportsBody');
+            tbody.innerHTML = '';
+            if (!passports || passports.length === 0) { tbody.innerHTML = '<tr><td colspan="5">No data available</td></tr>'; return; }
+            passports.slice(0, 20).forEach(p => {
+                const row = tbody.insertRow();
+                row.insertCell(0).innerHTML = `<strong>${escapeHtml(p.passportNumber)}</strong>`;
+                row.insertCell(1).textContent = safeNumber(p.totalLinks);
+                row.insertCell(2).textContent = safeNumber(p.refillCount);
+                row.insertCell(3).textContent = safeNumber(p.rate) === 0 ? 'N/A' : safeNumber(p.rate);
+                row.insertCell(4).innerHTML = `<span class="status-badge status-active">${p.status || 'active'}</span>`;
+            });
+        }
+
+        function updateRecentActivityTable(activities) {
+            const tbody = document.getElementById('recentActivityBody');
+            tbody.innerHTML = '';
+            if (!activities || activities.length === 0) { tbody.innerHTML = '<tr><td colspan="6">No recent activity</td></tr>'; return; }
+            activities.slice(0, 30).forEach(a => {
+                const row = tbody.insertRow();
+                row.insertCell(0).textContent = new Date(a.timestamp).toLocaleString();
+                row.insertCell(1).innerHTML = `<strong>${escapeHtml(a.passportNumber)}</strong>`;
+                row.insertCell(2).textContent = a.country || 'N/A';
+                row.insertCell(3).textContent = a.city || 'N/A';
+                row.insertCell(4).innerHTML = a.isOriginal ? '<span class="status-badge status-active">Original</span>' : `<span class="status-badge">Refill ${a.refillNumber}</span>`;
+                row.insertCell(5).textContent = safeNumber(a.rate) === 0 ? 'N/A' : safeNumber(a.rate);
+            });
+        }
+
+        async function refreshAll() { await refreshDashboardData(); await refreshActiveRefills(); }
+        function startAutoRefresh() { if (autoRefreshInterval) clearInterval(autoRefreshInterval); autoRefreshInterval = setInterval(refreshAll, 30000); }
         
-        activities.slice(0, 30).forEach(activity => {
-            const row = tbody.insertRow();
-            const rate = safeNumber(activity.rate);
-            
-            row.insertCell(0).textContent = new Date(activity.timestamp).toLocaleString();
-            row.insertCell(1).innerHTML = `<strong>${escapeHtml(activity.passportNumber)}</strong>`;
-            row.insertCell(2).textContent = activity.country || 'N/A';
-            row.insertCell(3).textContent = activity.city || 'N/A';
-            row.insertCell(4).innerHTML = activity.isOriginal ? 
-                '<span class="status-badge status-active">Original</span>' : 
-                `<span class="status-badge">Refill ${activity.refillNumber}</span>`;
-            row.insertCell(5).textContent = rate === 0 ? 'N/A' : rate;
-        });
-    }
-
-    function getCountryFlag(country) {
-        const flags = {
-            'Saudi Arabia': '🇸🇦',
-            'Bahrain': '🇧🇭',
-            'UAE': '🇦🇪',
-            'Oman': '🇴🇲'
-        };
-        return flags[country] || '🌍';
-    }
-
-    function escapeHtml(str) {
-        if (!str) return '';
-        return String(str).replace(/[&<>]/g, function(m) {
-            if (m === '&') return '&amp;';
-            if (m === '<') return '&lt;';
-            if (m === '>') return '&gt;';
-            return m;
-        });
-    }
-
-    // Refresh all data
-    async function refreshAll() {
-        await refreshDashboardData();
-        await refreshActiveRefills();
-    }
-
-    // Auto-refresh every 30 seconds
-    function startAutoRefresh() {
-        if (autoRefreshInterval) clearInterval(autoRefreshInterval);
-        autoRefreshInterval = setInterval(() => {
-            refreshAll();
-        }, 30000);
-    }
-
-    // Initialize
-    updateExtensionDisplay();
-    refreshAll();
-    startAutoRefresh();
-</script>
+        refreshAll();
+        startAutoRefresh();
+    </script>
 </body>
 </html>
