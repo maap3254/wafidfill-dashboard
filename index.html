@@ -46,6 +46,7 @@
             justify-content: flex-end;
             align-items: center;
             gap: 15px;
+            flex-wrap: wrap;
         }
 
         .last-updated {
@@ -211,12 +212,12 @@
             color: #155724;
         }
 
-        .status-stopped {
-            background: #f8d7da;
-            color: #721c24;
+        .status-retrying {
+            background: #fff3cd;
+            color: #856404;
         }
 
-        .status-running {
+        .status-waiting {
             background: #cfe2ff;
             color: #084298;
         }
@@ -224,6 +225,16 @@
         .error {
             background: #f8d7da;
             color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            display: none;
+        }
+
+        .warning {
+            background: #fff3cd;
+            color: #856404;
             padding: 15px;
             border-radius: 8px;
             margin-bottom: 20px;
@@ -250,53 +261,6 @@
             height: 4px;
             border-radius: 2px;
             transition: width 0.3s;
-        }
-
-        .stop-btn {
-            background: #dc3545;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: 600;
-            transition: all 0.2s ease;
-        }
-
-        .stop-btn:hover {
-            background: #c82333;
-            transform: scale(1.05);
-        }
-
-        .stop-btn:disabled {
-            background: #6c757d;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .toast-message {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            padding: 12px 20px;
-            border-radius: 8px;
-            color: white;
-            font-weight: 600;
-            z-index: 1000;
-            animation: slideIn 0.3s ease;
-        }
-
-        .toast-success {
-            background: #28a745;
-        }
-
-        .toast-error {
-            background: #dc3545;
-        }
-
-        .toast-info {
-            background: #17a2b8;
         }
 
         @keyframes slideIn {
@@ -333,11 +297,11 @@
 
         <div class="last-updated-bar">
             <span class="last-updated" id="lastUpdated">Last Updated: --</span>
-            <button class="refresh-btn" onclick="refreshData()">🔄 Refresh Data</button>
-            <button class="refresh-btn" onclick="refreshActiveRefills()" style="background: #28a745; color: white;">⏰ Refresh Active Refills</button>
+            <button class="refresh-btn" onclick="refreshAll()">🔄 Refresh All Data</button>
         </div>
 
         <div id="errorMsg" class="error"></div>
+        <div id="warningMsg" class="warning"></div>
         <div id="loadingMsg" class="loading" style="display: none;">Loading dashboard data...</div>
 
         <!-- Active Refills Section -->
@@ -346,10 +310,10 @@
             <div style="overflow-x: auto;">
                 <table id="activeRefillsTable">
                     <thead>
-                        <tr><th>Passport Number</th><th>Username</th><th>Refills Done</th><th>Total Refills</th><th>Next Refill In</th><th>Next Country</th><th>Status</th><th>Action</th></tr>
+                        <tr><th>Timestamp</th><th>Passport Number</th><th>User Email</th><th>Extension ID</th><th>Refills Done</th><th>Total Refills</th><th>Remaining Time</th><th>Next Country</th><th>Status</th></tr>
                     </thead>
                     <tbody id="activeRefillsBody">
-                        <tr><td colspan="8" style="text-align: center;">Loading active refills...</td></tr>
+                        <tr><td colspan="9" style="text-align: center;">Loading active refills......</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -375,7 +339,7 @@
             <div style="overflow-x: auto;">
                 <table id="topPassportsTable">
                     <thead>
-                        <tr><th>Passport Number</th><th>Username</th><th>Total Links</th><th>Refills</th><th>Rate</th><th>Status</th><th>Action</th></tr>
+                        <tr><th>Passport Number</th><th>User Email</th><th>Total Links</th><th>Refills</th><th>Rate</th><th>Status</th></tr>
                     </thead>
                     <tbody id="topPassportsBody"></tbody>
                 </table>
@@ -387,7 +351,7 @@
             <div style="overflow-x: auto;">
                 <table id="recentActivityTable">
                     <thead>
-                        <tr><th>Timestamp</th><th>Passport</th><th>Username</th><th>Country</th><th>Link Type</th><th>Rate</th></tr>
+                        <tr><th>Timestamp</th><th>Passport</th><th>User Email</th><th>Country</th><th>City</th><th>Link Type</th><th>Rate</th></tr>
                     </thead>
                     <tbody id="recentActivityBody"></tbody>
                 </table>
@@ -396,113 +360,72 @@
     </div>
 
     <script>
-        // ============= EXTENSION COMMUNICATION =============
-// Replace this with YOUR EXTENSION ID from chrome://extensions/
-const EXTENSION_ID = 'bilafpipilcghdnkdlbggeabkdajdjob';
-
-// Function to send message to Chrome extension
-function sendMessageToExtension(message) {
-    return new Promise((resolve) => {
-        if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
-            try {
-                chrome.runtime.sendMessage(EXTENSION_ID, message, (response) => {
-                    if (chrome.runtime.lastError) {
-                        console.error('Extension error:', chrome.runtime.lastError.message);
-                        resolve({ success: false, error: chrome.runtime.lastError.message });
-                    } else {
-                        resolve(response || { success: false });
-                    }
-                });
-            } catch (error) {
-                console.error('Failed to send message:', error);
-                resolve({ success: false, error: error.message });
-            }
-        } else {
-            console.warn('Chrome runtime not available');
-            resolve({ success: false, error: 'Extension not accessible from web page' });
-        }
-    });
-}
-        // ============= IMPORTANT =============
-        // REPLACE THIS URL WITH YOUR GOOGLE APPS SCRIPT WEB APP URL
+        // ============= GOOGLE APPS SCRIPT URL =============
         const API_URL = 'https://script.google.com/macros/s/AKfycbwqyow-kOvurZA89cfS5bxxrMdsjkbGXZfQjk0wmygpPLaOPXoGd-nhTHVkQbF6wp6J/exec';
-        // =====================================
         
         let charts = {};
-        let activeRefills = [];
+        let autoRefreshInterval;
+        let extensionInfo = { extensionId: 'unknown', userEmail: 'unknown' };
 
-        // Function to refresh active refills from extension
+        // Get extension info from localStorage (set by extension)
+        function loadExtensionInfo() {
+            try {
+                const storedExtId = localStorage.getItem('wafid_extension_id');
+                const storedEmail = localStorage.getItem('wafid_user_email');
+                if (storedExtId) extensionInfo.extensionId = storedExtId;
+                if (storedEmail) extensionInfo.userEmail = storedEmail;
+            } catch (e) {}
+        }
+
+        // Refresh all data
+        async function refreshAll() {
+            await refreshDashboardData();
+            await refreshActiveRefills();
+        }
+
+        // Refresh active refills from server (synced by extension)
         async function refreshActiveRefills() {
             try {
-                // This sends a message to the extension to get active refills
-                // Note: This requires the extension to have a listener for this action
-                const response = await sendMessageToExtension({ action: 'getAllIndividualRefillTimers' });
+                const response = await fetch(`${API_URL}?action=getActiveRefills&t=${Date.now()}`);
                 
-                if (response && response.success && response.timers) {
-                    activeRefills = response.timers;
-                    updateActiveRefillsTable(activeRefills);
-                    document.getElementById('activeRefillCount').textContent = activeRefills.length;
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success && data.timers && data.timers.length > 0) {
+                    updateActiveRefillsTable(data.timers);
+                    document.getElementById('activeRefillCount').textContent = data.timers.length;
+                    document.getElementById('warningMsg').style.display = 'none';
                 } else {
                     updateActiveRefillsTable([]);
                     document.getElementById('activeRefillCount').textContent = '0';
+                    const warningMsg = document.getElementById('warningMsg');
+                    warningMsg.innerHTML = '⚠️ No active refill timers found. Make sure your extension is running and has active refills.';
+                    warningMsg.style.display = 'block';
                 }
             } catch (error) {
                 console.error('Error fetching active refills:', error);
                 const tbody = document.getElementById('activeRefillsBody');
-                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">⚠️ Extension not connected. Make sure the extension is installed and active.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">⚠️ Unable to load active refills. Make sure the extension is running and syncing.</div>'
                 document.getElementById('activeRefillCount').textContent = '0';
+                const warningMsg = document.getElementById('warningMsg');
+                warningMsg.innerHTML = '⚠️ Cannot connect to server. Make sure your extension is running and Google Apps Script is deployed.';
+                warningMsg.style.display = 'block';
             }
         }
 
-       
-        // Function to stop a single refill
-        async function stopRefill(passportNumber) {
-            const confirmed = confirm(`🛑 Stop all refills for passport: ${passportNumber}?\n\nThis will:\n• Stop all future refills\n• Remove this passport from active timers\n\nYou can start a new refill cycle by making a new payment.\n\nAre you sure?`);
+        // Format time remaining
+        function formatTimeRemaining(seconds) {
+            if (!seconds && seconds !== 0) return 'Calculating...';
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
             
-            if (!confirmed) return;
-            
-            showToast(`⏳ Stopping refill for ${passportNumber}...`, 'info');
-            
-            try {
-                const response = await sendMessageToExtension({ 
-                    action: 'stopIndividualRefill', 
-                    passportNumber: passportNumber 
-                });
-                
-                if (response && response.success) {
-                    showToast(`✅ Successfully stopped refill for ${passportNumber}`, 'success');
-                    // Refresh both dashboard data and active refills
-                    refreshActiveRefills();
-                    refreshData();
-                } else {
-                    showToast(`❌ Failed to stop refill for ${passportNumber}: ${response?.error || 'Unknown error'}`, 'error');
-                }
-            } catch (error) {
-                showToast(`❌ Error: ${error.message}`, 'error');
-            }
-        }
-
-        // Function to stop all refills
-        async function stopAllRefills() {
-            const confirmed = confirm(`🛑 STOP ALL ACTIVE REFILLS?\n\nThis will stop ALL running refill timers for ALL passports.\n\nThis action CANNOT be undone easily.\n\nAre you ABSOLUTELY sure?`);
-            
-            if (!confirmed) return;
-            
-            showToast(`⏳ Stopping all refills...`, 'info');
-            
-            try {
-                const response = await sendMessageToExtension({ action: 'stopAllIndividualRefills' });
-                
-                if (response && response.success) {
-                    showToast(`✅ Successfully stopped all refills`, 'success');
-                    refreshActiveRefills();
-                    refreshData();
-                } else {
-                    showToast(`❌ Failed to stop all refills: ${response?.error || 'Unknown error'}`, 'error');
-                }
-            } catch (error) {
-                showToast(`❌ Error: ${error.message}`, 'error');
-            }
+            if (hours > 0) return `${hours}h ${minutes}m`;
+            if (minutes > 0) return `${minutes}m ${secs}s`;
+            return `${secs}s`;
         }
 
         // Update active refills table
@@ -510,7 +433,7 @@ function sendMessageToExtension(message) {
             const tbody = document.getElementById('activeRefillsBody');
             
             if (!timers || timers.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">✅ No active refill timers</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">✅ No active refill timers</div>'
                 return;
             }
             
@@ -518,45 +441,35 @@ function sendMessageToExtension(message) {
             
             timers.forEach(timer => {
                 const row = tbody.insertRow();
-                const hours = Math.floor(timer.remainingSeconds / 3600);
-                const minutes = Math.floor((timer.remainingSeconds % 3600) / 60);
-                const seconds = timer.remainingSeconds % 60;
+                const timeDisplay = formatTimeRemaining(timer.remainingSeconds);
+                const progress = ((timer.refillCount || 0) / (timer.totalRefills || 5)) * 100;
                 
-                let timeDisplay = '';
-                if (hours > 0) timeDisplay = `${hours}h ${minutes}m ${seconds}s`;
-                else if (minutes > 0) timeDisplay = `${minutes}m ${seconds}s`;
-                else timeDisplay = `${seconds}s`;
+                let statusClass = 'status-waiting';
+                let statusText = '⏰ Waiting';
+                if (timer.status === 'retrying') {
+                    statusClass = 'status-retrying';
+                    statusText = '🔄 Retrying';
+                } else if (timer.remainingSeconds < 60 && timer.remainingSeconds > 0) {
+                    statusClass = 'status-active';
+                    statusText = '⚡ Soon';
+                }
                 
-                const progress = (timer.refillCount / timer.totalRefills) * 100;
-                const statusText = timer.isRetry ? '🔄 Retrying' : (timer.remainingSeconds > 0 ? '⏰ Waiting' : '⚡ Ready');
-                const statusClass = timer.isRetry ? 'status-active' : 'status-running';
+                const timestamp = timer.timestamp ? new Date(timer.timestamp).toLocaleString() : 'Unknown';
                 
-                row.insertCell(0).innerHTML = `<strong>${escapeHtml(timer.passport)}</strong>`;
-                row.insertCell(1).textContent = 'Loading...';
-                row.insertCell(2).innerHTML = `${timer.refillCount}/${timer.totalRefills} <div class="progress-bar" style="margin-top: 5px;"><div class="progress-fill" style="width: ${progress}%;"></div></div>`;
-                row.insertCell(3).textContent = timer.totalRefills;
-                row.insertCell(4).innerHTML = `<span style="font-weight: 600; ${timer.remainingSeconds < 60 ? 'color: #dc3545;' : ''}">${timeDisplay}</span>`;
-                row.insertCell(5).textContent = timer.nextCountry || 'Unknown';
-                row.insertCell(6).innerHTML = `<span class="status-badge ${statusClass}">${statusText}</span>`;
-                row.insertCell(7).innerHTML = `<button class="stop-btn" onclick="stopRefill('${escapeHtml(timer.passport)}')">🛑 Stop</button>`;
+                row.insertCell(0).textContent = timestamp;
+                row.insertCell(1).innerHTML = `<strong>${escapeHtml(timer.passport)}</strong>`;
+                row.insertCell(2).innerHTML = `<span style="font-size: 12px;">${escapeHtml(timer.userEmail || extensionInfo.userEmail || 'Unknown')}</span>`;
+                row.insertCell(3).innerHTML = `<span style="font-size: 10px; font-family: monospace;">${escapeHtml(timer.extensionId || extensionInfo.extensionId || 'Unknown')}</span>`;
+                row.insertCell(4).innerHTML = `${timer.refillCount || 0}/${timer.totalRefills || 5} <div class="progress-bar"><div class="progress-fill" style="width: ${progress}%;"></div></div>`;
+                row.insertCell(5).textContent = timer.totalRefills || 5;
+                row.insertCell(6).innerHTML = `<span style="font-weight: 600; ${timer.remainingSeconds < 60 ? 'color: #dc3545;' : ''}">${timeDisplay}</span>`;
+                row.insertCell(7).innerHTML = `<strong style="color: #28a745;">${escapeHtml(timer.nextCountry || 'Calculating...')}</strong>`;
+                row.insertCell(8).innerHTML = `<span class="status-badge ${statusClass}">${statusText}</span>`;
             });
         }
 
-        // Show toast notification
-        function showToast(message, type = 'info') {
-            const toast = document.createElement('div');
-            toast.className = `toast-message toast-${type}`;
-            toast.textContent = message;
-            document.body.appendChild(toast);
-            
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
-        }
-
         // Refresh dashboard data from Google Sheets
-        async function refreshData() {
+        async function refreshDashboardData() {
             const errorDiv = document.getElementById('errorMsg');
             const loadingDiv = document.getElementById('loadingMsg');
             
@@ -564,15 +477,13 @@ function sendMessageToExtension(message) {
             loadingDiv.style.display = 'block';
             
             try {
-                console.log('Fetching from:', API_URL);
-                const response = await fetch(`${API_URL}?action=getDashboardData`);
+                const response = await fetch(`${API_URL}?action=getDashboardData&t=${Date.now()}`);
                 
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
                 
                 const data = await response.json();
-                console.log('Data received:', data);
                 
                 if (data.success) {
                     updateDashboard(data);
@@ -620,7 +531,7 @@ function sendMessageToExtension(message) {
                 <div class="stat-card">
                     <div class="icon">💰</div>
                     <div class="value">${(data.stats.totalRate || 0).toFixed(2)}</div>
-                    <div class="label">Total Rate (GIFTCARD)</div>
+                    <div class="label">Total Rate</div>
                 </div>
                 <div class="stat-card">
                     <div class="icon">👥</div>
@@ -648,8 +559,9 @@ function sendMessageToExtension(message) {
 
         function updateCountryChart(countryStats) {
             const ctx = document.getElementById('countryChart').getContext('2d');
-            const countries = Object.keys(countryStats);
-            const links = countries.map(c => countryStats[c].totalLinks || 0);
+            const allowedCountries = ['Saudi Arabia', 'Bahrain', 'UAE', 'Oman', 'Kuwait', 'Qatar'];
+            const countries = allowedCountries.filter(c => countryStats[c]);
+            const links = countries.map(c => countryStats[c]?.totalLinks || 0);
             
             if (charts.countryChart) charts.countryChart.destroy();
             
@@ -667,8 +579,7 @@ function sendMessageToExtension(message) {
                 options: {
                     responsive: true,
                     maintainAspectRatio: true,
-                    scales: { y: { beginAtZero: true, title: { display: true, text: 'Number of Links' } } },
-                    plugins: { legend: { position: 'top' } }
+                    scales: { y: { beginAtZero: true, title: { display: true, text: 'Number of Links' } } }
                 }
             });
         }
@@ -690,16 +601,13 @@ function sendMessageToExtension(message) {
                         borderColor: '#667eea',
                         backgroundColor: 'rgba(102, 126, 234, 0.1)',
                         fill: true,
-                        tension: 0.4,
-                        pointBackgroundColor: '#667eea',
-                        pointBorderColor: '#fff',
-                        pointRadius: 4
+                        tension: 0.4
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: true,
-                    scales: { y: { beginAtZero: true, title: { display: true, text: 'Number of Links' } } }
+                    scales: { y: { beginAtZero: true } }
                 }
             });
         }
@@ -708,8 +616,11 @@ function sendMessageToExtension(message) {
             const container = document.getElementById('countryStats');
             container.innerHTML = '';
             
-            for (const [country, stats] of Object.entries(countryStats)) {
-                const passportCount = stats.passports || 0;
+            const allowedCountries = ['Saudi Arabia', 'Bahrain', 'UAE', 'Oman', 'Kuwait', 'Qatar'];
+            
+            for (const country of allowedCountries) {
+                const stats = countryStats[country] || { passportsCount: 0, totalLinks: 0, totalRate: 0 };
+                const passportCount = stats.passportsCount || stats.passports || 0;
                 const linkCount = stats.totalLinks || 0;
                 const avgPerPassport = passportCount > 0 ? (linkCount / passportCount).toFixed(1) : 0;
                 const progressWidth = Math.min(100, (linkCount / (passportCount || 1)) * 20);
@@ -746,19 +657,18 @@ function sendMessageToExtension(message) {
             tbody.innerHTML = '';
             
             if (!passports || passports.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No data available</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No data available</div>'
                 return;
             }
             
             passports.slice(0, 20).forEach(p => {
                 const row = tbody.insertRow();
                 row.insertCell(0).innerHTML = `<strong>${escapeHtml(p.passportNumber)}</strong>`;
-                row.insertCell(1).textContent = p.username || 'Unknown';
+                row.insertCell(1).innerHTML = `<span style="font-size: 12px;">${escapeHtml(p.username || 'Unknown')}</span>`;
                 row.insertCell(2).textContent = p.totalLinks || 0;
                 row.insertCell(3).textContent = p.refillCount || 0;
                 row.insertCell(4).textContent = p.rate || 'N/A';
                 row.insertCell(5).innerHTML = `<span class="status-badge status-active">${p.status || 'active'}</span>`;
-                row.insertCell(6).innerHTML = `<button class="stop-btn" onclick="stopRefill('${escapeHtml(p.passportNumber)}')">🛑 Stop</button>`;
             });
         }
 
@@ -767,7 +677,7 @@ function sendMessageToExtension(message) {
             tbody.innerHTML = '';
             
             if (!activities || activities.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No recent activity</td></tr>';
+                tbody.innerHTML = '<table><td colspan="7" style="text-align: center;">No recent activity</div>'
                 return;
             }
             
@@ -775,12 +685,13 @@ function sendMessageToExtension(message) {
                 const row = tbody.insertRow();
                 row.insertCell(0).textContent = new Date(activity.timestamp).toLocaleString();
                 row.insertCell(1).innerHTML = `<strong>${escapeHtml(activity.passportNumber)}</strong>`;
-                row.insertCell(2).textContent = activity.username || 'Unknown';
+                row.insertCell(2).innerHTML = `<span style="font-size: 12px;">${escapeHtml(activity.username || 'Unknown')}</span>`;
                 row.insertCell(3).textContent = activity.country || 'N/A';
-                row.insertCell(4).innerHTML = activity.isOriginal ? 
+                row.insertCell(4).textContent = activity.city || 'N/A';
+                row.insertCell(5).innerHTML = activity.isOriginal ? 
                     '<span class="status-badge status-active">Original</span>' : 
                     `<span class="status-badge">Refill ${activity.refillNumber}</span>`;
-                row.insertCell(5).textContent = activity.rate || 'N/A';
+                row.insertCell(6).textContent = activity.rate || 'N/A';
             });
         }
 
@@ -807,18 +718,16 @@ function sendMessageToExtension(message) {
         }
 
         // Auto-refresh every 30 seconds
-        let refreshInterval;
         function startAutoRefresh() {
-            if (refreshInterval) clearInterval(refreshInterval);
-            refreshInterval = setInterval(() => {
-                refreshData();
-                refreshActiveRefills();
+            if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+            autoRefreshInterval = setInterval(() => {
+                refreshAll();
             }, 30000);
         }
 
         // Initialize
-        refreshData();
-        refreshActiveRefills();
+        loadExtensionInfo();
+        refreshAll();
         startAutoRefresh();
     </script>
 </body>
