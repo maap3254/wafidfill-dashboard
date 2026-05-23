@@ -1,11 +1,10 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WafidFill Monitoring Dashboard</title>
     <style>
-        /* --- Your existing CSS styles (keep them as they are) --- */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -64,6 +63,17 @@
             transition: all 0.3s ease;
         }
         .refresh-btn:hover { transform: scale(1.05); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        .stop-all-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .stop-all-btn:hover { transform: scale(1.05); background: #c82333; box-shadow: 0 5px 15px rgba(220,53,69,0.3); }
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -136,6 +146,14 @@
             border-left: 4px solid #667eea;
             padding-left: 10px;
         }
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
         th { background: #667eea; color: white; font-weight: 600; }
@@ -150,16 +168,47 @@
         .status-active { background: #d4edda; color: #155724; }
         .status-retrying { background: #fff3cd; color: #856404; }
         .status-waiting { background: #cfe2ff; color: #084298; }
+        .stop-single-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 4px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        .stop-single-btn:hover { background: #c82333; transform: scale(1.05); }
         .error { background: #f8d7da; color: #721c24; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; display: none; }
         .warning { background: #fff3cd; color: #856404; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; display: none; }
         .loading { text-align: center; padding: 50px; color: white; font-size: 1.2rem; }
         .progress-bar { background: #e0e0e0; border-radius: 4px; overflow: hidden; margin-top: 10px; }
         .progress-fill { background: #667eea; height: 4px; border-radius: 2px; transition: width 0.3s; }
+        .toast-message {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+        }
+        .toast-success { background: #28a745; }
+        .toast-error { background: #dc3545; }
+        .toast-info { background: #17a2b8; }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
         @media (max-width: 768px) {
             .charts-grid { grid-template-columns: 1fr; }
             .stats-grid { grid-template-columns: repeat(2, 1fr); }
             .header h1 { font-size: 1.5rem; }
             .extension-info-bar { flex-direction: column; text-align: center; }
+            .table-header { flex-direction: column; align-items: stretch; }
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -191,14 +240,17 @@
 
         <!-- Active Refills Section -->
         <div class="table-card">
-            <h3>⏰ Active Refill Timers <span id="activeRefillCount" style="font-size: 12px; background: #28a745; color: white; padding: 2px 8px; border-radius: 12px;">0</span></h3>
+            <div class="table-header">
+                <h3>⏰ Active Refill Timers <span id="activeRefillCount" style="font-size: 12px; background: #28a745; color: white; padding: 2px 8px; border-radius: 12px;">0</span></h3>
+                <button class="stop-all-btn" onclick="stopAllRefills()">🛑 Stop All Refills</button>
+            </div>
             <div style="overflow-x: auto;">
                 <table id="activeRefillsTable">
                     <thead>
-                        <tr><th>Passport Number</th><th>User Email</th><th>Refills Done</th><th>Total Refills</th><th>Remaining Time</th><th>Next Country</th><th>Status</th></tr>
+                        <tr><th>Passport Number</th><th>User Email</th><th>Refills Done</th><th>Total Refills</th><th>Remaining Time</th><th>Next Country</th><th>Status</th><th>Action</th></tr>
                     </thead>
                     <tbody id="activeRefillsBody">
-                        <tr><td colspan="7" style="text-align: center;">Loading active refills...</div></div>
+                        <tr><td colspan="8" style="text-align: center;">Loading active refills...</div></div>
                     </tbody>
                 </table>
             </div>
@@ -211,14 +263,17 @@
         </div>
         <div class="country-grid" id="countryStats"></div>
         <div class="table-card"><h3>🏆 Top Passports by Activity</h3><table id="topPassportsTable"><thead><tr><th>Passport Number</th><th>Total Links</th><th>Refills</th><th>Rate</th><th>Status</th></tr></thead><tbody id="topPassportsBody"></tbody></table></div>
-        <div class="table-card"><h3>⏰ Recent Activity</h3><table id="recentActivityTable"><thead><tr><th>Timestamp</th><th>Passport</th><th>Country</th><th>City</th><th>Link Type</th><th>Rate</th></tr></thead><tbody id="recentActivityBody"></tbody></table></div>
+        <div class="table-card"><h3>⏰ Recent Activity</h3><table id="recentActivityTable"><thead><tr><th>Timestamp</th><th>Passport</th><th>Country</th><th>City</th><th>Link Type</th><th>Rate</th></tr></thead><tbody id="recentActivityBody"></tbody>｜｜DSML｜｜</div>
     </div>
 
     <script>
-        // ============= YOUR GOOGLE APPS SCRIPT WEB APP URL =============
-        const API_URL = 'https://script.google.com/macros/s/AKfycbz8irXh--aUphnxCxvR4LzVPSIfpbqKTGagUVafS3ACHJfgTMF73KMygAWkF3MokO_09w/exec';
+        // ============= CONVEX URL (for active refills) =============
+        const CONVEX_URL = 'https://artful-kingfisher-32.convex.site/api';
         
-        // ============= YOUR EXTENSION ID (for filtering) =============
+        // ============= GOOGLE SHEETS URL (for dashboard stats) =============
+        const GOOGLE_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbz8irXh--aUphnxCxvR4LzVPSIfpbqKTGagUVafS3ACHJfgTMF73KMygAWkF3MokO_09w/exec';
+        
+        // ============= YOUR EXTENSION ID =============
         const MY_EXTENSION_ID = 'ogdijnjjlkidpjdoipaenelnihcbpnni';
         
         let charts = {};
@@ -239,11 +294,30 @@
         function escapeHtml(str) { if (!str) return ''; return String(str).replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;'); }
         function getCountryFlag(country) { const flags = { 'Saudi Arabia': '🇸🇦', 'Bahrain': '🇧🇭', 'UAE': '🇦🇪', 'Oman': '🇴🇲' }; return flags[country] || '🌍'; }
 
-        // Refresh active refills from Google Sheets
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast-message toast-${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // ============= ACTIVE REFILLS (Convex) =============
+        
         async function refreshActiveRefills() {
             try {
-                const response = await fetch(`${API_URL}?action=getActiveRefills&t=${Date.now()}`);
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const response = await fetch(CONVEX_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'getActiveRefills',
+                        extensionId: MY_EXTENSION_ID,
+                    })
+                });
+                
                 const data = await response.json();
                 
                 if (data.success && data.timers && data.timers.length > 0) {
@@ -261,16 +335,72 @@
                 console.error('Error fetching active refills:', error);
                 updateActiveRefillsTable([]);
                 document.getElementById('activeRefillCount').textContent = '0';
-                const warningMsg = document.getElementById('warningMsg');
-                warningMsg.innerHTML = '⚠️ Error loading active refills. Ensure your Apps Script is deployed.';
-                warningMsg.style.display = 'block';
+            }
+        }
+
+        async function stopRefill(passportNumber) {
+            const confirmed = confirm(`🛑 Stop all refills for passport: ${passportNumber}?`);
+            if (!confirmed) return;
+            
+            showToast(`⏳ Stopping refill for ${passportNumber}...`, 'info');
+            
+            try {
+                const response = await fetch(CONVEX_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'stopIndividualRefill',
+                        extensionId: MY_EXTENSION_ID,
+                        passportNumber: passportNumber,
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast(`✅ Stopped refill for ${passportNumber}`, 'success');
+                    await refreshActiveRefills();
+                } else {
+                    showToast(`❌ Failed: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                showToast(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function stopAllRefills() {
+            const confirmed = confirm(`🛑 STOP ALL ACTIVE REFILLS?\n\nThis will stop ALL running refill timers for ALL passports.\n\nAre you ABSOLUTELY sure?`);
+            if (!confirmed) return;
+            
+            showToast(`⏳ Stopping all refills...`, 'info');
+            
+            try {
+                const response = await fetch(CONVEX_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'stopAllRefills',
+                        extensionId: MY_EXTENSION_ID,
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast(`✅ Stopped ${data.count} refills`, 'success');
+                    await refreshActiveRefills();
+                } else {
+                    showToast(`❌ Failed`, 'error');
+                }
+            } catch (error) {
+                showToast(`❌ Error: ${error.message}`, 'error');
             }
         }
 
         function updateActiveRefillsTable(timers) {
             const tbody = document.getElementById('activeRefillsBody');
             if (!timers || timers.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">✅ No active refill timers</div></div>';
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">✅ No active refill timers</div></div>';
                 return;
             }
             tbody.innerHTML = '';
@@ -282,24 +412,26 @@
                 if (timer.status === 'retrying') { statusClass = 'status-retrying'; statusText = '🔄 Retrying'; }
                 else if (timer.remainingSeconds < 60 && timer.remainingSeconds > 0) { statusClass = 'status-active'; statusText = '⚡ Soon'; }
                 
-                row.insertCell(0).innerHTML = `<strong>${escapeHtml(timer.passport)}</strong>`;
+                row.insertCell(0).innerHTML = `<strong>${escapeHtml(timer.passportNumber)}</strong>`;
                 row.insertCell(1).innerHTML = `<span style="font-size: 12px;">${escapeHtml(timer.userEmail || 'Unknown')}</span>`;
                 row.insertCell(2).innerHTML = `${safeNumber(timer.refillCount)}/${safeNumber(timer.totalRefills) || 5} <div class="progress-bar"><div class="progress-fill" style="width: ${progress}%;"></div></div>`;
                 row.insertCell(3).textContent = timer.totalRefills || 5;
                 row.insertCell(4).innerHTML = `<span style="font-weight: 600; ${timer.remainingSeconds < 60 ? 'color: #dc3545;' : ''}">${timeDisplay}</span>`;
                 row.insertCell(5).innerHTML = `<strong style="color: #28a745;">${escapeHtml(timer.nextCountry || 'Calculating...')}</strong>`;
                 row.insertCell(6).innerHTML = `<span class="status-badge ${statusClass}">${statusText}</span>`;
+                row.insertCell(7).innerHTML = `<button class="stop-single-btn" onclick="stopRefill('${escapeHtml(timer.passportNumber)}')">🛑 Stop</button>`;
             });
         }
 
-        // Refresh dashboard data from Google Sheets
+        // ============= DASHBOARD STATS (Google Sheets) =============
+        
         async function refreshDashboardData() {
             const errorDiv = document.getElementById('errorMsg');
             const loadingDiv = document.getElementById('loadingMsg');
             errorDiv.style.display = 'none';
             loadingDiv.style.display = 'block';
             try {
-                const response = await fetch(`${API_URL}?action=getDashboardData&t=${Date.now()}`);
+                const response = await fetch(`${GOOGLE_SHEETS_URL}?action=getDashboardData&t=${Date.now()}`);
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
                 if (data.success) {
@@ -381,7 +513,7 @@
         function updateTopPassportsTable(passports) {
             const tbody = document.getElementById('topPassportsBody');
             tbody.innerHTML = '';
-            if (!passports || passports.length === 0) { tbody.innerHTML = '<tr><td colspan="5">No data available</td></tr>'; return; }
+            if (!passports || passports.length === 0) { tbody.innerHTML = '</table><td colspan="5">No data available</div></div>'; return; }
             passports.slice(0, 20).forEach(p => {
                 const row = tbody.insertRow();
                 row.insertCell(0).innerHTML = `<strong>${escapeHtml(p.passportNumber)}</strong>`;
@@ -395,7 +527,7 @@
         function updateRecentActivityTable(activities) {
             const tbody = document.getElementById('recentActivityBody');
             tbody.innerHTML = '';
-            if (!activities || activities.length === 0) { tbody.innerHTML = '<tr><td colspan="6">No recent activity</td></tr>'; return; }
+            if (!activities || activities.length === 0) { tbody.innerHTML = '<table><td colspan="6">No recent activity</div></div>'; return; }
             activities.slice(0, 30).forEach(a => {
                 const row = tbody.insertRow();
                 row.insertCell(0).textContent = new Date(a.timestamp).toLocaleString();
@@ -407,8 +539,15 @@
             });
         }
 
-        async function refreshAll() { await refreshDashboardData(); await refreshActiveRefills(); }
-        function startAutoRefresh() { if (autoRefreshInterval) clearInterval(autoRefreshInterval); autoRefreshInterval = setInterval(refreshAll, 30000); }
+        async function refreshAll() { 
+            await refreshDashboardData(); 
+            await refreshActiveRefills(); 
+        }
+        
+        function startAutoRefresh() { 
+            if (autoRefreshInterval) clearInterval(autoRefreshInterval); 
+            autoRefreshInterval = setInterval(refreshAll, 30000); 
+        }
         
         refreshAll();
         startAutoRefresh();
