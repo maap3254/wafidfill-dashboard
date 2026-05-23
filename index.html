@@ -356,7 +356,7 @@
                         <tr><th>Passport Number</th><th>Refills Done</th><th>Total Refills</th><th>Remaining Time</th><th>Next Country</th><th>Status</th></tr>
                     </thead>
                     <tbody id="activeRefillsBody">
-                        <tr><td colspan="6" style="text-align: center;">Loading active refills...</td></tr>
+                        <tr><td colspan="6" style="text-align: center;">Loading active refills...</div></div>
                     </tbody>
                 </table>
             </div>
@@ -414,11 +414,23 @@
         let autoRefreshInterval;
         let myExtensionData = { extensionId: MY_EXTENSION_ID, userEmail: '' };
 
+        // Helper function to safely format numbers
+        function safeNumber(value, defaultValue = 0) {
+            const num = parseFloat(value);
+            return isNaN(num) ? defaultValue : num;
+        }
+
+        function safeToFixed(value, decimals = 2) {
+            const num = safeNumber(value);
+            return num.toFixed(decimals);
+        }
+
         // Display extension ID
         function updateExtensionDisplay() {
             const displayEl = document.getElementById('extensionIdDisplay');
             if (displayEl) {
-                displayEl.innerHTML = `🔑 Extension ID: <strong>${MY_EXTENSION_ID.substring(0, 20)}...</strong>`;
+                const shortId = MY_EXTENSION_ID.length > 25 ? MY_EXTENSION_ID.substring(0, 25) + '...' : MY_EXTENSION_ID;
+                displayEl.innerHTML = `🔑 Extension ID: <strong>${shortId}</strong>`;
             }
         }
 
@@ -449,9 +461,9 @@
             if (filtered.topPassports) {
                 filtered.stats = filtered.stats || {};
                 filtered.stats.totalPassports = filtered.topPassports.length;
-                filtered.stats.totalLinks = filtered.topPassports.reduce((sum, p) => sum + (p.totalLinks || 0), 0);
-                filtered.stats.totalRefills = filtered.topPassports.reduce((sum, p) => sum + (p.refillCount || 0), 0);
-                filtered.stats.totalRate = filtered.topPassports.reduce((sum, p) => sum + (parseFloat(p.rate) || 0), 0);
+                filtered.stats.totalLinks = filtered.topPassports.reduce((sum, p) => sum + safeNumber(p.totalLinks), 0);
+                filtered.stats.totalRefills = filtered.topPassports.reduce((sum, p) => sum + safeNumber(p.refillCount), 0);
+                filtered.stats.totalRate = filtered.topPassports.reduce((sum, p) => sum + safeNumber(p.rate), 0);
                 filtered.stats.avgLinksPerPassport = filtered.stats.totalPassports > 0 ? 
                     (filtered.stats.totalLinks / filtered.stats.totalPassports).toFixed(1) : 0;
             }
@@ -514,7 +526,7 @@
             const tbody = document.getElementById('activeRefillsBody');
             
             if (!timers || timers.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">✅ No active refill timers</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">✅ No active refill timers</div></div>';
                 return;
             }
             
@@ -523,7 +535,7 @@
             timers.forEach(timer => {
                 const row = tbody.insertRow();
                 const timeDisplay = formatTimeRemaining(timer.remainingSeconds);
-                const progress = ((timer.refillCount || 0) / (timer.totalRefills || 5)) * 100;
+                const progress = ((safeNumber(timer.refillCount)) / (safeNumber(timer.totalRefills) || 5)) * 100;
                 
                 let statusClass = 'status-waiting';
                 let statusText = '⏰ Waiting';
@@ -536,7 +548,7 @@
                 }
                 
                 row.insertCell(0).innerHTML = `<strong>${escapeHtml(timer.passport)}</strong>`;
-                row.insertCell(1).innerHTML = `${timer.refillCount || 0}/${timer.totalRefills || 5} <div class="progress-bar"><div class="progress-fill" style="width: ${progress}%;"></div></div>`;
+                row.insertCell(1).innerHTML = `${safeNumber(timer.refillCount)}/${safeNumber(timer.totalRefills) || 5} <div class="progress-bar"><div class="progress-fill" style="width: ${progress}%;"></div></div>`;
                 row.insertCell(2).textContent = timer.totalRefills || 5;
                 row.insertCell(3).innerHTML = `<span style="font-weight: 600; ${timer.remainingSeconds < 60 ? 'color: #dc3545;' : ''}">${timeDisplay}</span>`;
                 row.insertCell(4).innerHTML = `<strong style="color: #28a745;">${escapeHtml(timer.nextCountry || 'Calculating...')}</strong>`;
@@ -577,11 +589,13 @@
                 
                 const cached = localStorage.getItem('dashboardCache');
                 if (cached) {
-                    const { data, timestamp } = JSON.parse(cached);
-                    if (Date.now() - timestamp < 300000) {
-                        updateDashboard(data);
-                        errorDiv.innerHTML += `<br>📦 Showing cached data from ${new Date(timestamp).toLocaleString()}`;
-                    }
+                    try {
+                        const { data, timestamp } = JSON.parse(cached);
+                        if (Date.now() - timestamp < 300000) {
+                            updateDashboard(data);
+                            errorDiv.innerHTML += `<br>📦 Showing cached data from ${new Date(timestamp).toLocaleString()}`;
+                        }
+                    } catch (e) {}
                 }
             } finally {
                 loadingDiv.style.display = 'none';
@@ -589,37 +603,46 @@
         }
 
         function updateDashboard(data) {
+            // Safely extract stats with error handling
+            const stats = data.stats || {};
+            const totalPassports = safeNumber(stats.totalPassports);
+            const totalLinks = safeNumber(stats.totalLinks);
+            const totalRefills = safeNumber(stats.totalRefills);
+            const totalRate = safeNumber(stats.totalRate);
+            const activeUsers = safeNumber(stats.activeUsers);
+            const avgLinksPerPassport = safeToFixed(stats.avgLinksPerPassport, 1);
+            
             // Update stats
             const statsGrid = document.getElementById('statsGrid');
             statsGrid.innerHTML = `
                 <div class="stat-card">
                     <div class="icon">📋</div>
-                    <div class="value">${data.stats?.totalPassports || 0}</div>
+                    <div class="value">${totalPassports}</div>
                     <div class="label">Total Passports</div>
                 </div>
                 <div class="stat-card">
                     <div class="icon">🔗</div>
-                    <div class="value">${data.stats?.totalLinks || 0}</div>
+                    <div class="value">${totalLinks}</div>
                     <div class="label">Total Links</div>
                 </div>
                 <div class="stat-card">
                     <div class="icon">🔄</div>
-                    <div class="value">${data.stats?.totalRefills || 0}</div>
+                    <div class="value">${totalRefills}</div>
                     <div class="label">Total Refills</div>
                 </div>
                 <div class="stat-card">
                     <div class="icon">💰</div>
-                    <div class="value">${(data.stats?.totalRate || 0).toFixed(2)}</div>
+                    <div class="value">${totalRate.toFixed(2)}</div>
                     <div class="label">Total Rate</div>
                 </div>
                 <div class="stat-card">
                     <div class="icon">👥</div>
-                    <div class="value">${data.stats?.activeUsers || 0}</div>
+                    <div class="value">${activeUsers}</div>
                     <div class="label">Active Users</div>
                 </div>
                 <div class="stat-card">
                     <div class="icon">🌍</div>
-                    <div class="value">${(data.stats?.avgLinksPerPassport || 0).toFixed(1)}</div>
+                    <div class="value">${avgLinksPerPassport}</div>
                     <div class="label">Avg Links/Passport</div>
                 </div>
             `;
@@ -640,7 +663,7 @@
             const ctx = document.getElementById('countryChart').getContext('2d');
             const allowedCountries = ['Saudi Arabia', 'Bahrain', 'UAE', 'Oman'];
             const countries = allowedCountries.filter(c => countryStats && countryStats[c]);
-            const links = countries.map(c => countryStats?.[c]?.totalLinks || 0);
+            const links = countries.map(c => safeNumber(countryStats?.[c]?.totalLinks));
             
             if (charts.countryChart) charts.countryChart.destroy();
             
@@ -666,7 +689,7 @@
         function updateDailyChart(dailyActivity) {
             const ctx = document.getElementById('dailyChart').getContext('2d');
             const dates = dailyActivity?.map(d => d.date) || [];
-            const counts = dailyActivity?.map(d => d.count) || [];
+            const counts = dailyActivity?.map(d => safeNumber(d.count)) || [];
             
             if (charts.dailyChart) charts.dailyChart.destroy();
             
@@ -699,8 +722,8 @@
             
             for (const country of allowedCountries) {
                 const stats = countryStats?.[country] || { passportsCount: 0, totalLinks: 0, totalRate: 0 };
-                const passportCount = stats.passportsCount || 0;
-                const linkCount = stats.totalLinks || 0;
+                const passportCount = safeNumber(stats.passportsCount);
+                const linkCount = safeNumber(stats.totalLinks);
                 const avgPerPassport = passportCount > 0 ? (linkCount / passportCount).toFixed(1) : 0;
                 
                 container.innerHTML += `
@@ -720,7 +743,7 @@
                         </div>
                         <div class="country-stats">
                             <span>💰 Total Rate:</span>
-                            <strong>${(stats.totalRate || 0).toFixed(2)}</strong>
+                            <strong>${safeToFixed(stats.totalRate, 2)}</strong>
                         </div>
                     </div>
                 `;
@@ -732,16 +755,20 @@
             tbody.innerHTML = '';
             
             if (!passports || passports.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No data available</td></tr>';
+                tbody.innerHTML = '<td><td colspan="5" style="text-align: center;">No data available</div></div>';
                 return;
             }
             
             passports.slice(0, 20).forEach(p => {
                 const row = tbody.insertRow();
+                const totalLinks = safeNumber(p.totalLinks);
+                const refillCount = safeNumber(p.refillCount);
+                const rate = safeNumber(p.rate);
+                
                 row.insertCell(0).innerHTML = `<strong>${escapeHtml(p.passportNumber)}</strong>`;
-                row.insertCell(1).textContent = p.totalLinks || 0;
-                row.insertCell(2).textContent = p.refillCount || 0;
-                row.insertCell(3).textContent = p.rate || 'N/A';
+                row.insertCell(1).textContent = totalLinks;
+                row.insertCell(2).textContent = refillCount;
+                row.insertCell(3).textContent = rate === 0 ? 'N/A' : rate;
                 row.insertCell(4).innerHTML = `<span class="status-badge status-active">${p.status || 'active'}</span>`;
             });
         }
@@ -751,12 +778,14 @@
             tbody.innerHTML = '';
             
             if (!activities || activities.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No recent activity</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No recent activity</div></div>';
                 return;
             }
             
             activities.slice(0, 30).forEach(activity => {
                 const row = tbody.insertRow();
+                const rate = safeNumber(activity.rate);
+                
                 row.insertCell(0).textContent = new Date(activity.timestamp).toLocaleString();
                 row.insertCell(1).innerHTML = `<strong>${escapeHtml(activity.passportNumber)}</strong>`;
                 row.insertCell(2).textContent = activity.country || 'N/A';
@@ -764,7 +793,7 @@
                 row.insertCell(4).innerHTML = activity.isOriginal ? 
                     '<span class="status-badge status-active">Original</span>' : 
                     `<span class="status-badge">Refill ${activity.refillNumber}</span>`;
-                row.insertCell(5).textContent = activity.rate || 'N/A';
+                row.insertCell(5).textContent = rate === 0 ? 'N/A' : rate;
             });
         }
 
@@ -780,7 +809,7 @@
 
         function escapeHtml(str) {
             if (!str) return '';
-            return str.replace(/[&<>]/g, function(m) {
+            return String(str).replace(/[&<>]/g, function(m) {
                 if (m === '&') return '&amp;';
                 if (m === '<') return '&lt;';
                 if (m === '>') return '&gt;';
