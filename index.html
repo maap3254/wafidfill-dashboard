@@ -64,17 +64,6 @@
             transition: all 0.3s ease;
         }
         .refresh-btn:hover { transform: scale(1.05); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
-        .stop-all-btn {
-            background: #dc3545;
-            color: white;
-            border: none;
-            padding: 8px 20px;
-            border-radius: 25px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-        .stop-all-btn:hover { transform: scale(1.05); background: #c82333; box-shadow: 0 5px 15px rgba(220,53,69,0.3); }
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -147,14 +136,6 @@
             border-left: 4px solid #667eea;
             padding-left: 10px;
         }
-        .table-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
         th { background: #667eea; color: white; font-weight: 600; }
@@ -169,47 +150,16 @@
         .status-active { background: #d4edda; color: #155724; }
         .status-retrying { background: #fff3cd; color: #856404; }
         .status-waiting { background: #cfe2ff; color: #084298; }
-        .stop-single-btn {
-            background: #dc3545;
-            color: white;
-            border: none;
-            padding: 4px 12px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: 600;
-            transition: all 0.2s ease;
-        }
-        .stop-single-btn:hover { background: #c82333; transform: scale(1.05); }
         .error { background: #f8d7da; color: #721c24; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; display: none; }
         .warning { background: #fff3cd; color: #856404; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; display: none; }
         .loading { text-align: center; padding: 50px; color: white; font-size: 1.2rem; }
         .progress-bar { background: #e0e0e0; border-radius: 4px; overflow: hidden; margin-top: 10px; }
         .progress-fill { background: #667eea; height: 4px; border-radius: 2px; transition: width 0.3s; }
-        .toast-message {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            padding: 12px 20px;
-            border-radius: 8px;
-            color: white;
-            font-weight: 600;
-            z-index: 1000;
-            animation: slideIn 0.3s ease;
-        }
-        .toast-success { background: #28a745; }
-        .toast-error { background: #dc3545; }
-        .toast-info { background: #17a2b8; }
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
         @media (max-width: 768px) {
             .charts-grid { grid-template-columns: 1fr; }
             .stats-grid { grid-template-columns: repeat(2, 1fr); }
             .header h1 { font-size: 1.5rem; }
             .extension-info-bar { flex-direction: column; text-align: center; }
-            .table-header { flex-direction: column; align-items: stretch; }
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -241,17 +191,14 @@
 
         <!-- Active Refills Section -->
         <div class="table-card">
-            <div class="table-header">
-                <h3>⏰ Active Refill Timers <span id="activeRefillCount" style="font-size: 12px; background: #28a745; color: white; padding: 2px 8px; border-radius: 12px;">0</span></h3>
-                <button class="stop-all-btn" onclick="stopAllRefills()">🛑 Stop All Refills</button>
-            </div>
+            <h3>⏰ Active Refill Timers <span id="activeRefillCount" style="font-size: 12px; background: #28a745; color: white; padding: 2px 8px; border-radius: 12px;">0</span></h3>
             <div style="overflow-x: auto;">
                 <table id="activeRefillsTable">
                     <thead>
-                        <tr><th>Passport Number</th><th>User Email</th><th>Refills Done</th><th>Total Refills</th><th>Remaining Time</th><th>Next Country</th><th>Status</th><th>Action</th></tr>
+                        <tr><th>Passport Number</th><th>User Email</th><th>Refills Done</th><th>Total Refills</th><th>Remaining Time</th><th>Next Country</th><th>Status</th></tr>
                     </thead>
                     <tbody id="activeRefillsBody">
-                        <tr><td colspan="8" style="text-align: center;">Loading active refills...</div></div>
+                        <tr><td colspan="7" style="text-align: center;">Loading active refills...</div></div>
                     </tbody>
                 </table>
             </div>
@@ -292,86 +239,6 @@
         function escapeHtml(str) { if (!str) return ''; return String(str).replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;'); }
         function getCountryFlag(country) { const flags = { 'Saudi Arabia': '🇸🇦', 'Bahrain': '🇧🇭', 'UAE': '🇦🇪', 'Oman': '🇴🇲' }; return flags[country] || '🌍'; }
 
-        // Show toast notification
-        function showToast(message, type = 'info') {
-            const toast = document.createElement('div');
-            toast.className = `toast-message toast-${type}`;
-            toast.textContent = message;
-            document.body.appendChild(toast);
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
-        }
-
-        // Send command to extension via proxy
-        async function sendToExtension(action, passportNumber = null) {
-            try {
-                // This sends a request to your server which can forward to extension
-                // For now, we'll just update the UI and rely on extension's auto-sync
-                const response = await fetch(`${API_URL}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: action,
-                        passportNumber: passportNumber,
-                        extensionId: MY_EXTENSION_ID,
-                        timestamp: Date.now()
-                    })
-                });
-                return { success: true };
-            } catch (error) {
-                console.error('Error sending to extension:', error);
-                return { success: false, error: error.message };
-            }
-        }
-
-        // Stop a single refill
-        async function stopRefill(passportNumber) {
-            const confirmed = confirm(`🛑 Stop all refills for passport: ${passportNumber}?\n\nThis will:\n• Stop all future refills\n• Remove this passport from active timers\n\nAre you sure?`);
-            if (!confirmed) return;
-            
-            showToast(`⏳ Stopping refill for ${passportNumber}...`, 'info');
-            
-            try {
-                // Try to send to extension via server
-                const result = await sendToExtension('stopIndividualRefill', passportNumber);
-                
-                if (result.success) {
-                    showToast(`✅ Successfully stopped refill for ${passportNumber}`, 'success');
-                    // Refresh the active refills list
-                    await refreshActiveRefills();
-                } else {
-                    showToast(`⚠️ Command sent. Refill will stop on next sync.`, 'info');
-                    await refreshActiveRefills();
-                }
-            } catch (error) {
-                showToast(`❌ Error: ${error.message}`, 'error');
-            }
-        }
-
-        // Stop all refills
-        async function stopAllRefills() {
-            const confirmed = confirm(`🛑 STOP ALL ACTIVE REFILLS?\n\nThis will stop ALL running refill timers for ALL passports.\n\nThis action CANNOT be undone easily.\n\nAre you ABSOLUTELY sure?`);
-            if (!confirmed) return;
-            
-            showToast(`⏳ Stopping all refills...`, 'info');
-            
-            try {
-                const result = await sendToExtension('stopAllIndividualRefills');
-                
-                if (result.success) {
-                    showToast(`✅ Successfully stopped all refills`, 'success');
-                    await refreshActiveRefills();
-                } else {
-                    showToast(`⚠️ Stop command sent. All refills will stop on next sync.`, 'info');
-                    await refreshActiveRefills();
-                }
-            } catch (error) {
-                showToast(`❌ Error: ${error.message}`, 'error');
-            }
-        }
-
         // Refresh active refills from Google Sheets
         async function refreshActiveRefills() {
             try {
@@ -403,7 +270,7 @@
         function updateActiveRefillsTable(timers) {
             const tbody = document.getElementById('activeRefillsBody');
             if (!timers || timers.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">✅ No active refill timers</div></div>';
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">✅ No active refill timers</div></div>';
                 return;
             }
             tbody.innerHTML = '';
@@ -422,7 +289,6 @@
                 row.insertCell(4).innerHTML = `<span style="font-weight: 600; ${timer.remainingSeconds < 60 ? 'color: #dc3545;' : ''}">${timeDisplay}</span>`;
                 row.insertCell(5).innerHTML = `<strong style="color: #28a745;">${escapeHtml(timer.nextCountry || 'Calculating...')}</strong>`;
                 row.insertCell(6).innerHTML = `<span class="status-badge ${statusClass}">${statusText}</span>`;
-                row.insertCell(7).innerHTML = `<button class="stop-single-btn" onclick="stopRefill('${escapeHtml(timer.passport)}')">🛑 Stop</button>`;
             });
         }
 
@@ -515,7 +381,7 @@
         function updateTopPassportsTable(passports) {
             const tbody = document.getElementById('topPassportsBody');
             tbody.innerHTML = '';
-            if (!passports || passports.length === 0) { tbody.innerHTML = '<tr><td colspan="5">No data available</div></div>'; return; }
+            if (!passports || passports.length === 0) { tbody.innerHTML = '<tr><td colspan="5">No data available</td></tr>'; return; }
             passports.slice(0, 20).forEach(p => {
                 const row = tbody.insertRow();
                 row.insertCell(0).innerHTML = `<strong>${escapeHtml(p.passportNumber)}</strong>`;
@@ -529,7 +395,7 @@
         function updateRecentActivityTable(activities) {
             const tbody = document.getElementById('recentActivityBody');
             tbody.innerHTML = '';
-            if (!activities || activities.length === 0) { tbody.innerHTML = '<tr><td colspan="6">No recent activity</div></div>'; return; }
+            if (!activities || activities.length === 0) { tbody.innerHTML = '<tr><td colspan="6">No recent activity</td></tr>'; return; }
             activities.slice(0, 30).forEach(a => {
                 const row = tbody.insertRow();
                 row.insertCell(0).textContent = new Date(a.timestamp).toLocaleString();
@@ -541,15 +407,8 @@
             });
         }
 
-        async function refreshAll() { 
-            await refreshDashboardData(); 
-            await refreshActiveRefills(); 
-        }
-        
-        function startAutoRefresh() { 
-            if (autoRefreshInterval) clearInterval(autoRefreshInterval); 
-            autoRefreshInterval = setInterval(refreshAll, 30000); 
-        }
+        async function refreshAll() { await refreshDashboardData(); await refreshActiveRefills(); }
+        function startAutoRefresh() { if (autoRefreshInterval) clearInterval(autoRefreshInterval); autoRefreshInterval = setInterval(refreshAll, 30000); }
         
         refreshAll();
         startAutoRefresh();
