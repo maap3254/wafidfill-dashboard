@@ -2,21 +2,21 @@
   "timers": [
     {
       "passport": "A21561467",
-      "remainingSeconds": 823,
+      "remainingSeconds": 763,
       "refillCount": 8,
       "totalRefills": 20,
       "status": "active",
-      "lastUpdated": 1779525390613
+      "lastUpdated": 1779525450612
     },
     {
       "passport": "A01494970",
-      "remainingSeconds": 2805,
+      "remainingSeconds": 2745,
       "refillCount": 9,
       "totalRefills": 20,
       "status": "active",
-      "lastUpdated": 1779525390613
+      "lastUpdated": 1779525450612
     }
   ],
-  "lastUpdated": 1779525390613,
+  "lastUpdated": 1779525450612,
   "totalActive": 2
 }
