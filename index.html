@@ -347,7 +347,7 @@ async function stopRefill(passportNumber) {
     try {
         // Open the extension bridge page to execute the stop command
         // This requires the extension ID to be known
-        const EXTENSION_ID = 'ogdijnjjlkidpjdoipaenelnihcbpnni'; // Your extension ID
+        const EXTENSION_ID = 'wafid_mluybnad_2tz3f6ngp'; // Your extension ID
         
         // Try to open the bridge page in the extension
         const bridgeUrl = `chrome-extension://${EXTENSION_ID}/dashboard-bridge.html?action=stop&passport=${encodeURIComponent(passportNumber)}`;
