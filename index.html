@@ -42,6 +42,15 @@
             font-size: 12px;
             font-weight: 600;
         }
+        .note {
+            background: #fff3cd;
+            color: #856404;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            text-align: center;
+        }
         .last-updated-bar {
             text-align: right;
             margin-bottom: 20px;
@@ -229,6 +238,11 @@
             </div>
         </div>
 
+        <div class="note" id="connectionNote">
+            ⚠️ Note: Stop buttons only work when this dashboard is opened from the Chrome extension (not as a web page).
+            <br>Open this page from the extension popup or sidebar for full functionality.
+        </div>
+
         <div class="last-updated-bar">
             <span class="last-updated" id="lastUpdated">Last Updated: --</span>
             <button class="refresh-btn" onclick="refreshAll()">🔄 Refresh All Data</button>
@@ -263,7 +277,7 @@
         </div>
         <div class="country-grid" id="countryStats"></div>
         <div class="table-card"><h3>🏆 Top Passports by Activity</h3><table id="topPassportsTable"><thead><tr><th>Passport Number</th><th>Total Links</th><th>Refills</th><th>Rate</th><th>Status</th></tr></thead><tbody id="topPassportsBody"></tbody></table></div>
-        <div class="table-card"><h3>⏰ Recent Activity</h3><table id="recentActivityTable"><thead><tr><th>Timestamp</th><th>Passport</th><th>Country</th><th>City</th><th>Link Type</th><th>Rate</th></tr></thead><tbody id="recentActivityBody"></tbody>｜｜DSML｜｜</div>
+        <div class="table-card"><h3>⏰ Recent Activity</h3><table id="recentActivityTable"><thead><tr><th>Timestamp</th><th>Passport</th><th>Country</th><th>City</th><th>Link Type</th><th>Rate</th></tr></thead><tbody id="recentActivityBody"></tbody></table></div>
     </div>
 
     <script>
@@ -305,6 +319,102 @@
             }, 3000);
         }
 
+        // ============= SEND COMMAND TO EXTENSION =============
+        // This function sends a message to the Chrome extension
+        async function sendCommandToExtension(action, passportNumber = null) {
+            return new Promise((resolve) => {
+                // Check if we're in a Chrome extension context
+                if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+                    const message = { action: action };
+                    if (passportNumber) {
+                        message.passportNumber = passportNumber;
+                    }
+                    
+                    chrome.runtime.sendMessage(message, (response) => {
+                        if (chrome.runtime.lastError) {
+                            console.error('Extension error:', chrome.runtime.lastError);
+                            resolve({ success: false, error: chrome.runtime.lastError.message });
+                        } else {
+                            resolve(response || { success: true });
+                        }
+                    });
+                } else {
+                    // Fallback: Just update the database (no extension communication)
+                    console.warn('Not in extension context, using database only');
+                    resolve({ success: true, fallback: true });
+                }
+            });
+        }
+
+        // ============= STOP REFILL (Sends command to extension) =============
+        async function stopRefill(passportNumber) {
+            const confirmed = confirm(`🛑 Stop all refills for passport: ${passportNumber}?\n\nThis will stop the timer in the extension.`);
+            if (!confirmed) return;
+            
+            showToast(`⏳ Stopping refill for ${passportNumber}...`, 'info');
+            
+            try {
+                // First, try to send command to extension
+                const extResult = await sendCommandToExtension('stopIndividualRefill', passportNumber);
+                
+                // Also update the database (Convex)
+                const convexResponse = await fetch(CONVEX_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'stopIndividualRefill',
+                        extensionId: MY_EXTENSION_ID,
+                        passportNumber: passportNumber,
+                    })
+                });
+                
+                const convexData = await convexResponse.json();
+                
+                if (extResult.success || convexData.success) {
+                    showToast(`✅ Stopped refill for ${passportNumber}`, 'success');
+                    setTimeout(() => refreshActiveRefills(), 1000);
+                } else {
+                    showToast(`❌ Failed: ${extResult.error || convexData.message}`, 'error');
+                }
+            } catch (error) {
+                showToast(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        // ============= STOP ALL REFILLS =============
+        async function stopAllRefills() {
+            const confirmed = confirm(`🛑 STOP ALL ACTIVE REFILLS?\n\nThis will stop ALL running refill timers for ALL passports.\n\nAre you ABSOLUTELY sure?`);
+            if (!confirmed) return;
+            
+            showToast(`⏳ Stopping all refills...`, 'info');
+            
+            try {
+                // First, try to send command to extension
+                const extResult = await sendCommandToExtension('stopAllIndividualRefills');
+                
+                // Also update the database (Convex)
+                const convexResponse = await fetch(CONVEX_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'stopAllRefills',
+                        extensionId: MY_EXTENSION_ID,
+                    })
+                });
+                
+                const convexData = await convexResponse.json();
+                
+                if (extResult.success || convexData.success) {
+                    showToast(`✅ Stopped all refills`, 'success');
+                    setTimeout(() => refreshActiveRefills(), 1000);
+                } else {
+                    showToast(`❌ Failed`, 'error');
+                }
+            } catch (error) {
+                showToast(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
         // ============= ACTIVE REFILLS (Convex) =============
         
         async function refreshActiveRefills() {
@@ -335,65 +445,6 @@
                 console.error('Error fetching active refills:', error);
                 updateActiveRefillsTable([]);
                 document.getElementById('activeRefillCount').textContent = '0';
-            }
-        }
-
-        async function stopRefill(passportNumber) {
-            const confirmed = confirm(`🛑 Stop all refills for passport: ${passportNumber}?`);
-            if (!confirmed) return;
-            
-            showToast(`⏳ Stopping refill for ${passportNumber}...`, 'info');
-            
-            try {
-                const response = await fetch(CONVEX_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'stopIndividualRefill',
-                        extensionId: MY_EXTENSION_ID,
-                        passportNumber: passportNumber,
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    showToast(`✅ Stopped refill for ${passportNumber}`, 'success');
-                    await refreshActiveRefills();
-                } else {
-                    showToast(`❌ Failed: ${data.message}`, 'error');
-                }
-            } catch (error) {
-                showToast(`❌ Error: ${error.message}`, 'error');
-            }
-        }
-
-        async function stopAllRefills() {
-            const confirmed = confirm(`🛑 STOP ALL ACTIVE REFILLS?\n\nThis will stop ALL running refill timers for ALL passports.\n\nAre you ABSOLUTELY sure?`);
-            if (!confirmed) return;
-            
-            showToast(`⏳ Stopping all refills...`, 'info');
-            
-            try {
-                const response = await fetch(CONVEX_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'stopAllRefills',
-                        extensionId: MY_EXTENSION_ID,
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    showToast(`✅ Stopped ${data.count} refills`, 'success');
-                    await refreshActiveRefills();
-                } else {
-                    showToast(`❌ Failed`, 'error');
-                }
-            } catch (error) {
-                showToast(`❌ Error: ${error.message}`, 'error');
             }
         }
 
@@ -513,7 +564,7 @@
         function updateTopPassportsTable(passports) {
             const tbody = document.getElementById('topPassportsBody');
             tbody.innerHTML = '';
-            if (!passports || passports.length === 0) { tbody.innerHTML = '</table><td colspan="5">No data available</div></div>'; return; }
+            if (!passports || passports.length === 0) { tbody.innerHTML = '<tr><td colspan="5">No data available</div></div>'; return; }
             passports.slice(0, 20).forEach(p => {
                 const row = tbody.insertRow();
                 row.insertCell(0).innerHTML = `<strong>${escapeHtml(p.passportNumber)}</strong>`;
@@ -527,7 +578,7 @@
         function updateRecentActivityTable(activities) {
             const tbody = document.getElementById('recentActivityBody');
             tbody.innerHTML = '';
-            if (!activities || activities.length === 0) { tbody.innerHTML = '<table><td colspan="6">No recent activity</div></div>'; return; }
+            if (!activities || activities.length === 0) { tbody.innerHTML = '<tr><td colspan="6">No recent activity</div></div>'; return; }
             activities.slice(0, 30).forEach(a => {
                 const row = tbody.insertRow();
                 row.insertCell(0).textContent = new Date(a.timestamp).toLocaleString();
@@ -551,6 +602,11 @@
         
         refreshAll();
         startAutoRefresh();
+
+        // Check if we're in extension context and update the note
+        if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id) {
+            document.getElementById('connectionNote').style.display = 'none';
+        }
     </script>
 </body>
 </html>
