@@ -346,75 +346,73 @@
             });
         }
 
-        // ============= STOP REFILL (Sends command to extension) =============
-        async function stopRefill(passportNumber) {
-            const confirmed = confirm(`🛑 Stop all refills for passport: ${passportNumber}?\n\nThis will stop the timer in the extension.`);
-            if (!confirmed) return;
-            
-            showToast(`⏳ Stopping refill for ${passportNumber}...`, 'info');
-            
-            try {
-                // First, try to send command to extension
-                const extResult = await sendCommandToExtension('stopIndividualRefill', passportNumber);
-                
-                // Also update the database (Convex)
-                const convexResponse = await fetch(CONVEX_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'stopIndividualRefill',
-                        extensionId: MY_EXTENSION_ID,
-                        passportNumber: passportNumber,
-                    })
-                });
-                
-                const convexData = await convexResponse.json();
-                
-                if (extResult.success || convexData.success) {
-                    showToast(`✅ Stopped refill for ${passportNumber}`, 'success');
-                    setTimeout(() => refreshActiveRefills(), 1000);
-                } else {
-                    showToast(`❌ Failed: ${extResult.error || convexData.message}`, 'error');
-                }
-            } catch (error) {
-                showToast(`❌ Error: ${error.message}`, 'error');
-            }
-        }
+       // ============= STOP REFILL (Opens extension bridge) =============
+async function stopRefill(passportNumber) {
+    const confirmed = confirm(`🛑 Stop all refills for passport: ${passportNumber}?\n\nThis will stop the timer in the extension.`);
+    if (!confirmed) return;
+    
+    showToast(`⏳ Stopping refill for ${passportNumber}...`, 'info');
+    
+    try {
+        // Open the extension bridge page to execute the stop command
+        // This requires the extension ID to be known
+        const EXTENSION_ID = 'ogdijnjjlkidpjdoipaenelnihcbpnni'; // Your extension ID
+        
+        // Try to open the bridge page in the extension
+        const bridgeUrl = `chrome-extension://${EXTENSION_ID}/dashboard-bridge.html?action=stop&passport=${encodeURIComponent(passportNumber)}`;
+        
+        // Open in a new tab
+        window.open(bridgeUrl, '_blank');
+        
+        // Also try to update Convex directly
+        const CONVEX_URL = 'https://artful-kingfisher-32.convex.site/api';
+        await fetch(CONVEX_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'stopIndividualRefill',
+                extensionId: MY_EXTENSION_ID,
+                passportNumber: passportNumber,
+            })
+        }).catch(() => {});
+        
+        showToast(`✅ Stop command sent for ${passportNumber}`, 'success');
+        setTimeout(() => refreshActiveRefills(), 2000);
+        
+    } catch (error) {
+        showToast(`❌ Error: ${error.message}`, 'error');
+    }
+}
 
-        // ============= STOP ALL REFILLS =============
-        async function stopAllRefills() {
-            const confirmed = confirm(`🛑 STOP ALL ACTIVE REFILLS?\n\nThis will stop ALL running refill timers for ALL passports.\n\nAre you ABSOLUTELY sure?`);
-            if (!confirmed) return;
-            
-            showToast(`⏳ Stopping all refills...`, 'info');
-            
-            try {
-                // First, try to send command to extension
-                const extResult = await sendCommandToExtension('stopAllIndividualRefills');
-                
-                // Also update the database (Convex)
-                const convexResponse = await fetch(CONVEX_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'stopAllRefills',
-                        extensionId: MY_EXTENSION_ID,
-                    })
-                });
-                
-                const convexData = await convexResponse.json();
-                
-                if (extResult.success || convexData.success) {
-                    showToast(`✅ Stopped all refills`, 'success');
-                    setTimeout(() => refreshActiveRefills(), 1000);
-                } else {
-                    showToast(`❌ Failed`, 'error');
-                }
-            } catch (error) {
-                showToast(`❌ Error: ${error.message}`, 'error');
-            }
-        }
-
+// ============= STOP ALL REFILLS =============
+async function stopAllRefills() {
+    const confirmed = confirm(`🛑 STOP ALL ACTIVE REFILLS?\n\nThis will stop ALL running refill timers for ALL passports.\n\nAre you ABSOLUTELY sure?`);
+    if (!confirmed) return;
+    
+    showToast(`⏳ Stopping all refills...`, 'info');
+    
+    try {
+        const EXTENSION_ID = 'ogdijnjjlkidpjdoipaenelnihcbpnni';
+        const bridgeUrl = `chrome-extension://${EXTENSION_ID}/dashboard-bridge.html?action=stopAll`;
+        window.open(bridgeUrl, '_blank');
+        
+        const CONVEX_URL = 'https://artful-kingfisher-32.convex.site/api';
+        await fetch(CONVEX_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'stopAllRefills',
+                extensionId: MY_EXTENSION_ID,
+            })
+        }).catch(() => {});
+        
+        showToast(`✅ Stop all command sent`, 'success');
+        setTimeout(() => refreshActiveRefills(), 2000);
+        
+    } catch (error) {
+        showToast(`❌ Error: ${error.message}`, 'error');
+    }
+}
         // ============= ACTIVE REFILLS (Convex) =============
         
         async function refreshActiveRefills() {
