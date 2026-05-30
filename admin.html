@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WafidFill - Simple Dashboard</title>
+    <title>WafidFill - Admin Dashboard</title>
     <style>
         * {
             margin: 0;
@@ -19,14 +19,13 @@
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
         }
 
-        /* Header */
         .header {
             text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: 30px;
         }
 
         .header h1 {
@@ -41,122 +40,144 @@
             font-size: 1rem;
         }
 
-        /* Stats Grid - Only Total Users and Active Users */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 30px;
-            margin-bottom: 40px;
-            max-width: 800px;
-            margin-left: auto;
-            margin-right: auto;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
         }
 
         .stat-card {
             background: white;
             border-radius: 20px;
-            padding: 40px 30px;
+            padding: 25px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            transition: transform 0.3s ease;
             text-align: center;
         }
 
         .stat-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
-        }
-
-        .stat-icon {
-            font-size: 3rem;
-            margin-bottom: 15px;
         }
 
         .stat-title {
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             text-transform: uppercase;
-            letter-spacing: 2px;
+            letter-spacing: 1px;
             color: #666;
-            margin-bottom: 15px;
-            font-weight: 600;
+            margin-bottom: 10px;
         }
 
         .stat-value {
-            font-size: 4rem;
+            font-size: 2rem;
             font-weight: bold;
             color: #333;
         }
 
-        /* Server Status Section */
-        .server-status-section {
-            background: white;
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-            max-width: 800px;
-            margin: 0 auto;
+        .stat-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
         }
 
-        .server-status-section h2 {
-            font-size: 1.5rem;
+        .dashboard-section {
+            background: white;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+
+        .section-header {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 20px 25px;
+            border-bottom: 2px solid #dee2e6;
+            cursor: pointer;
+        }
+
+        .section-header h2 {
+            font-size: 1.3rem;
             color: #333;
-            margin-bottom: 20px;
             display: flex;
             align-items: center;
             gap: 10px;
-            justify-content: center;
         }
 
-        .status-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-        }
-
-        .status-card {
-            background: #f8f9fa;
-            border-radius: 12px;
-            padding: 20px;
-            text-align: center;
-        }
-
-        .status-label {
-            font-size: 0.8rem;
-            color: #666;
-            margin-bottom: 10px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .status-value {
+        .section-header .toggle-icon {
+            margin-left: auto;
             font-size: 1.2rem;
-            font-weight: bold;
-            color: #333;
+        }
+
+        .section-content {
+            padding: 25px;
+            display: block;
+        }
+
+        .section-content.collapsed {
+            display: none;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th {
+            text-align: left;
+            padding: 12px;
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #555;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .data-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e9ecef;
+            color: #666;
+        }
+
+        .data-table tr:hover {
+            background: #f8f9fa;
         }
 
         .badge {
             display: inline-block;
-            padding: 6px 16px;
+            padding: 4px 12px;
             border-radius: 20px;
-            font-size: 0.85rem;
+            font-size: 0.75rem;
             font-weight: 600;
         }
 
-        .badge-success {
-            background: #d4edda;
-            color: #155724;
+        .badge-success { background: #d4edda; color: #155724; }
+        .badge-warning { background: #fff3cd; color: #856404; }
+        .badge-danger { background: #f8d7da; color: #721c24; }
+        .badge-info { background: #d1ecf1; color: #0c5460; }
+
+        .api-key-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
         }
 
-        .badge-warning {
-            background: #fff3cd;
-            color: #856404;
+        .api-key-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 15px;
+            border-left: 4px solid;
         }
 
-        .badge-danger {
-            background: #f8d7da;
-            color: #721c24;
+        .api-key-card h4 {
+            font-size: 1.1rem;
+            margin-bottom: 10px;
         }
 
-        /* Loading States */
+        .api-key-card .key-value {
+            font-family: monospace;
+            font-size: 0.75rem;
+            color: #666;
+            margin: 5px 0;
+        }
+
         .loading {
             text-align: center;
             padding: 40px;
@@ -178,7 +199,6 @@
             100% { transform: rotate(360deg); }
         }
 
-        /* Refresh Button */
         .refresh-btn {
             position: fixed;
             bottom: 30px;
@@ -192,7 +212,7 @@
             font-size: 24px;
             cursor: pointer;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            transition: transform 0.3s ease, background 0.3s ease;
+            transition: transform 0.3s ease;
             z-index: 1000;
         }
 
@@ -201,34 +221,23 @@
             background: #764ba2;
         }
 
-        .last-updated {
-            text-align: center;
-            color: rgba(255,255,255,0.7);
-            margin-top: 30px;
-            font-size: 0.8rem;
-        }
-
-        /* Error Message */
         .error-message {
             background: #f8d7da;
             color: #721c24;
             padding: 15px;
             border-radius: 10px;
-            text-align: center;
-            margin-top: 20px;
+            margin: 10px 0;
         }
 
-        /* Responsive */
         @media (max-width: 768px) {
             .stats-grid {
-                grid-template-columns: 1fr;
-                gap: 20px;
+                grid-template-columns: repeat(2, 1fr);
             }
-            .stat-value {
-                font-size: 3rem;
+            .data-table {
+                font-size: 0.8rem;
             }
-            .status-grid {
-                grid-template-columns: 1fr;
+            .data-table th, .data-table td {
+                padding: 8px;
             }
         }
     </style>
@@ -236,12 +245,11 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>📊 WafidFill Dashboard</h1>
-            <p>User analytics & system monitoring</p>
+            <h1>📊 WafidFill Admin Dashboard</h1>
+            <p>Real-time user analytics & system monitoring</p>
         </div>
 
-        <!-- Stats Grid - Only Total Users and Active Users -->
-        <div class="stats-grid">
+        <div class="stats-grid" id="statsGrid">
             <div class="stat-card">
                 <div class="stat-icon">👥</div>
                 <div class="stat-title">TOTAL USERS</div>
@@ -252,42 +260,115 @@
                 <div class="stat-title">ACTIVE USERS</div>
                 <div class="stat-value" id="activeUsers">--</div>
             </div>
+            <div class="stat-card">
+                <div class="stat-icon">💰</div>
+                <div class="stat-title">TOTAL REVENUE</div>
+                <div class="stat-value" id="totalRevenue">$--</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">⭐</div>
+                <div class="stat-title">TOTAL POINTS</div>
+                <div class="stat-value" id="totalPoints">--</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">🎁</div>
+                <div class="stat-title">REFERRALS</div>
+                <div class="stat-value" id="totalReferrals">--</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">🔑</div>
+                <div class="stat-title">API SUCCESS</div>
+                <div class="stat-value" id="apiSuccess">--%</div>
+            </div>
         </div>
 
-        <!-- Server Status Section -->
-        <div class="server-status-section">
-            <h2>
-                <span>🖥️</span>
-                Server Status
-            </h2>
-            <div id="serverStatusContent">
-                <div class="loading">
+        <!-- Users Section -->
+        <div class="dashboard-section">
+            <div class="section-header" onclick="toggleSection('usersContent')">
+                <h2>👥 Recent Users</h2>
+                <span class="toggle-icon" id="usersToggle">▼</span>
+            </div>
+            <div class="section-content" id="usersContent">
+                <div id="usersLoading" class="loading">
                     <div class="spinner"></div>
-                    Loading server status...
+                    Loading users...
+                </div>
+                <div id="usersTable" style="display: none;">
+                    <table class="data-table">
+                        <thead>
+                            <tr><th>Extension ID</th><th>Email</th><th>Phone</th><th>Points</th><th>Status</th><th>Registered</th></tr>
+                        </thead>
+                        <tbody id="usersBody"></tbody>
+                    </table>
                 </div>
             </div>
         </div>
 
-        <div class="last-updated" id="lastUpdated">Last updated: --</div>
+        <!-- Payments Section -->
+        <div class="dashboard-section">
+            <div class="section-header" onclick="toggleSection('paymentsContent')">
+                <h2>💰 Recent Payments</h2>
+                <span class="toggle-icon" id="paymentsToggle">▼</span>
+            </div>
+            <div class="section-content" id="paymentsContent">
+                <div id="paymentsLoading" class="loading">
+                    <div class="spinner"></div>
+                    Loading payments...
+                </div>
+                <div id="paymentsTable" style="display: none;">
+                    <table class="data-table">
+                        <thead>
+                            <tr><th>Transaction ID</th><th>Extension ID</th><th>Points</th><th>Amount</th><th>Status</th><th>Date</th></tr>
+                        </thead>
+                        <tbody id="paymentsBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- API Key Stats Section -->
+        <div class="dashboard-section">
+            <div class="section-header" onclick="toggleSection('apiKeysContent')">
+                <h2>🔑 API Key Performance</h2>
+                <span class="toggle-icon" id="apiKeysToggle">▼</span>
+            </div>
+            <div class="section-content" id="apiKeysContent">
+                <div id="apiKeysLoading" class="loading">
+                    <div class="spinner"></div>
+                    Loading API stats...
+                </div>
+                <div id="apiKeysStats" style="display: none;"></div>
+            </div>
+        </div>
+
+        <!-- Server Status Section -->
+        <div class="dashboard-section">
+            <div class="section-header" onclick="toggleSection('serverContent')">
+                <h2>🖥️ Server Status</h2>
+                <span class="toggle-icon" id="serverToggle">▼</span>
+            </div>
+            <div class="section-content" id="serverContent">
+                <div id="serverLoading" class="loading">
+                    <div class="spinner"></div>
+                    Loading server status...
+                </div>
+                <div id="serverStatus" style="display: none;"></div>
+            </div>
+        </div>
     </div>
 
-    <button class="refresh-btn" onclick="refreshData()">⟳</button>
+    <button class="refresh-btn" onclick="refreshAllData()">⟳</button>
 
     <script>
-        // Configuration
         const API_URL = 'https://artful-kingfisher-32.convex.site/api';
         
-        // Helper function to make API calls
         async function callAPI(action, data = {}) {
             try {
                 const response = await fetch(API_URL, {
                     method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action, ...data })
                 });
-                
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 return await response.json();
             } catch (error) {
@@ -296,143 +377,224 @@
             }
         }
 
-        // Format date
         function formatDate(timestamp) {
             if (!timestamp) return 'N/A';
-            return new Date(timestamp).toLocaleString();
+            return new Date(timestamp).toLocaleDateString();
         }
 
-        // Load all data
-        async function refreshData() {
+        // Load all dashboard data
+        async function refreshAllData() {
             await Promise.all([
-                loadUserStats(),
-                loadServerStatus()
+                loadSystemHealth(),
+                loadUsers(),
+                loadPayments(),
+                loadApiKeyStats()
             ]);
-            document.getElementById('lastUpdated').innerHTML = `Last updated: ${new Date().toLocaleString()}`;
         }
 
-        // Load user stats (Total Users and Active Users only)
-        async function loadUserStats() {
+        // Load system health (Total Users, Active Users)
+        async function loadSystemHealth() {
             try {
-                // Try to get stats from server status first
-                const statusResult = await callAPI('getServerStatus');
-                
-                if (statusResult.success && statusResult.stats) {
-                    document.getElementById('totalUsers').textContent = statusResult.stats.totalUsers || '0';
-                    document.getElementById('activeUsers').textContent = statusResult.stats.activeUsers || '0';
-                    return;
-                }
-                
-                // Fallback: Get users directly
-                const usersResult = await callAPI('getAllUsers');
-                
-                if (usersResult.success && usersResult.users) {
-                    const total = usersResult.users.length;
-                    const active = usersResult.users.filter(u => u.status === 'active').length;
-                    document.getElementById('totalUsers').textContent = total;
-                    document.getElementById('activeUsers').textContent = active;
-                } else {
-                    // If API fails, show demo data for testing
-                    document.getElementById('totalUsers').textContent = '54';
-                    document.getElementById('activeUsers').textContent = '54';
+                const result = await callAPI('getSystemHealth');
+                if (result.success) {
+                    document.getElementById('totalUsers').textContent = result.stats?.totalUsers || '0';
+                    document.getElementById('activeUsers').textContent = result.stats?.activeUsers || '0';
+                    document.getElementById('totalPoints').textContent = result.stats?.totalPoints?.toLocaleString() || '0';
+                    
+                    // Also load payment summary
+                    const paymentsResult = await callAPI('getAllPayments');
+                    if (paymentsResult.success) {
+                        document.getElementById('totalRevenue').textContent = `$${paymentsResult.summary?.totalRevenue?.toFixed(2) || '0'}`;
+                        document.getElementById('totalReferrals').textContent = paymentsResult.summary?.completedCount?.toString() || '0';
+                    }
                 }
             } catch (error) {
-                console.error('Error loading user stats:', error);
-                document.getElementById('totalUsers').textContent = '54';
-                document.getElementById('activeUsers').textContent = '54';
+                console.error('Error loading system health:', error);
+            }
+        }
+
+        // Load users list
+        async function loadUsers() {
+            const loading = document.getElementById('usersLoading');
+            const table = document.getElementById('usersTable');
+            const tbody = document.getElementById('usersBody');
+            
+            try {
+                const result = await callAPI('getAllUsers', { limit: 20 });
+                
+                if (result.success && result.users && result.users.length > 0) {
+                    tbody.innerHTML = result.users.map(user => `
+                        <tr>
+                            <td><code>${(user.extensionId || '').substring(0, 16)}...</code></td>
+                            <td>${user.userEmail || 'N/A'}</td>
+                            <td>${user.userPhone || 'N/A'}</td>
+                            <td><strong>${user.points || 0}</strong></td>
+                            <td><span class="badge badge-${user.status === 'active' ? 'success' : 'warning'}">${user.status}</span></td>
+                            <td>${formatDate(user.createdDate)}</div></td>
+                        </tr>
+                    `).join('');
+                    loading.style.display = 'none';
+                    table.style.display = 'block';
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="6">No users found</td></tr>';
+                    loading.style.display = 'none';
+                    table.style.display = 'block';
+                }
+            } catch (error) {
+                loading.innerHTML = `<div class="error-message">Error loading users: ${error.message}</div>`;
+            }
+        }
+
+        // Load payments
+        async function loadPayments() {
+            const loading = document.getElementById('paymentsLoading');
+            const table = document.getElementById('paymentsTable');
+            const tbody = document.getElementById('paymentsBody');
+            
+            try {
+                const result = await callAPI('getAllPayments', { limit: 20 });
+                
+                if (result.success && result.payments && result.payments.length > 0) {
+                    tbody.innerHTML = result.payments.map(payment => `
+                        <tr>
+                            <td><code>${(payment.transactionId || '').substring(0, 12)}...</code></td>
+                            <td><code>${(payment.extensionId || '').substring(0, 12)}...</code></td>
+                            <td><strong>${payment.points}</strong></td>
+                            <td>$${payment.amount}</td>
+                            <td><span class="badge badge-${payment.status === 'completed' ? 'success' : 'warning'}">${payment.status}</span></td>
+                            <td>${formatDate(payment.createdAt)}</div></td>
+                        </tr>
+                    `).join('');
+                    loading.style.display = 'none';
+                    table.style.display = 'block';
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="6">No payments found</td></tr>';
+                    loading.style.display = 'none';
+                    table.style.display = 'block';
+                }
+            } catch (error) {
+                loading.innerHTML = `<div class="error-message">Error loading payments: ${error.message}</div>`;
+            }
+        }
+
+        // Load API key stats
+        async function loadApiKeyStats() {
+            const loading = document.getElementById('apiKeysLoading');
+            const container = document.getElementById('apiKeysStats');
+            
+            try {
+                const result = await callAPI('getApiKeyStats');
+                
+                if (result.success && result.keyStats) {
+                    // Update API success rate in stats grid
+                    if (result.overall) {
+                        document.getElementById('apiSuccess').textContent = `${result.overall.overallSuccessRate}%`;
+                    }
+                    
+                    const keyStats = result.keyStats;
+                    const colors = { G: '#667eea', H: '#48bb78', I: '#ed8936', J: '#9f7aea', K: '#f687b3' };
+                    
+                    let html = '<div class="api-key-grid">';
+                    for (const [key, stats] of Object.entries(keyStats)) {
+                        const successRate = stats.total > 0 ? Math.round((stats.success / stats.total) * 100) : 0;
+                        html += `
+                            <div class="api-key-card" style="border-left-color: ${colors[key] || '#667eea'}">
+                                <h4>API Key ${key}</h4>
+                                <div class="key-value">📊 Total: ${stats.total} requests</div>
+                                <div class="key-value">✅ Success: ${stats.success} (${successRate}%)</div>
+                                <div class="key-value">❌ Failures: ${stats.failures}</div>
+                                <div class="key-value">🔄 Auto-rotated: ${stats.autoRotated || 0}</div>
+                                <div class="key-value">⚡ Avg Response: ${stats.avgResponseTime || 0}ms</div>
+                            </div>
+                        `;
+                    }
+                    html += '</div>';
+                    
+                    if (result.overall) {
+                        html += `
+                            <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 12px;">
+                                <strong>Overall API Performance:</strong><br>
+                                Total Requests: ${result.overall.totalRequests} | 
+                                Success Rate: ${result.overall.overallSuccessRate}% | 
+                                Total Failures: ${result.overall.totalFailures}
+                            </div>
+                        `;
+                    }
+                    
+                    container.innerHTML = html;
+                    loading.style.display = 'none';
+                    container.style.display = 'block';
+                } else {
+                    container.innerHTML = '<div class="loading">No API key stats available</div>';
+                    loading.style.display = 'none';
+                    container.style.display = 'block';
+                }
+            } catch (error) {
+                loading.innerHTML = `<div class="error-message">Error loading API stats: ${error.message}</div>`;
             }
         }
 
         // Load server status
         async function loadServerStatus() {
-            const container = document.getElementById('serverStatusContent');
+            const loading = document.getElementById('serverLoading');
+            const container = document.getElementById('serverStatus');
             
             try {
-                const result = await callAPI('getServerStatus');
+                const result = await callAPI('getSystemHealth');
                 
                 if (result.success) {
                     container.innerHTML = `
-                        <div class="status-grid">
-                            <div class="status-card">
-                                <div class="status-label">Status</div>
-                                <div class="status-value">
-                                    <span class="badge badge-success">🟢 Online</span>
-                                </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                            <div style="background: #f8f9fa; padding: 15px; border-radius: 12px;">
+                                <div style="font-size: 0.85rem; color: #666;">Version</div>
+                                <div style="font-size: 1.3rem; font-weight: bold;">${result.version || '1.0.0'}</div>
                             </div>
-                            <div class="status-card">
-                                <div class="status-label">Version</div>
-                                <div class="status-value">${result.version || '1.0.0'}</div>
+                            <div style="background: #f8f9fa; padding: 15px; border-radius: 12px;">
+                                <div style="font-size: 0.85rem; color: #666;">Environment</div>
+                                <div><span class="badge badge-success">${result.environment || 'production'}</span></div>
                             </div>
-                            <div class="status-card">
-                                <div class="status-label">Environment</div>
-                                <div class="status-value">
-                                    <span class="badge ${result.environment === 'production' ? 'badge-success' : 'badge-warning'}">
-                                        ${result.environment || 'production'}
-                                    </span>
-                                </div>
+                            <div style="background: #f8f9fa; padding: 15px; border-radius: 12px;">
+                                <div style="font-size: 0.85rem; color: #666;">Status</div>
+                                <div><span class="badge badge-success">🟢 Online</span></div>
                             </div>
-                            <div class="status-card">
-                                <div class="status-label">Last Check</div>
-                                <div class="status-value">${new Date().toLocaleTimeString()}</div>
-                            </div>
-                            <div class="status-card">
-                                <div class="status-label">API Endpoint</div>
-                                <div class="status-value" style="font-size: 0.8rem; word-break: break-all;">${API_URL}</div>
-                            </div>
-                            <div class="status-card">
-                                <div class="status-label">Response Time</div>
-                                <div class="status-value">${result.responseTime || '< 100ms'}</div>
+                            <div style="background: #f8f9fa; padding: 15px; border-radius: 12px;">
+                                <div style="font-size: 0.85rem; color: #666;">Release Date</div>
+                                <div style="font-size: 0.8rem;">${formatDate(result.releaseDate)}</div>
                             </div>
                         </div>
                     `;
+                    loading.style.display = 'none';
+                    container.style.display = 'block';
                 } else {
-                    container.innerHTML = `
-                        <div class="error-message">
-                            ⚠️ Unable to connect to server: ${result.error || 'Unknown error'}
-                        </div>
-                        <div class="status-grid" style="margin-top: 20px;">
-                            <div class="status-card">
-                                <div class="status-label">Status</div>
-                                <div class="status-value"><span class="badge badge-danger">🔴 Offline</span></div>
-                            </div>
-                            <div class="status-card">
-                                <div class="status-label">Last Check</div>
-                                <div class="status-value">${new Date().toLocaleTimeString()}</div>
-                            </div>
-                        </div>
-                    `;
+                    container.innerHTML = `<div class="error-message">Error loading server status</div>`;
+                    loading.style.display = 'none';
+                    container.style.display = 'block';
                 }
             } catch (error) {
-                container.innerHTML = `
-                    <div class="error-message">
-                        ⚠️ Error loading server status: ${error.message}
-                    </div>
-                    <div class="status-grid" style="margin-top: 20px;">
-                        <div class="status-card">
-                            <div class="status-label">Status</div>
-                            <div class="status-value"><span class="badge badge-danger">🔴 Error</span></div>
-                        </div>
-                        <div class="status-card">
-                            <div class="status-label">Last Check</div>
-                            <div class="status-value">${new Date().toLocaleTimeString()}</div>
-                        </div>
-                    </div>
-                `;
+                loading.innerHTML = `<div class="error-message">Error loading server status: ${error.message}</div>`;
             }
         }
 
-        // Auto-refresh every 30 seconds
-        let autoRefreshInterval;
-        
-        function startAutoRefresh() {
-            if (autoRefreshInterval) clearInterval(autoRefreshInterval);
-            autoRefreshInterval = setInterval(refreshData, 30000);
+        function toggleSection(sectionId) {
+            const content = document.getElementById(sectionId);
+            const toggleIcon = document.getElementById(sectionId.replace('Content', 'Toggle'));
+            
+            if (content.classList.contains('collapsed')) {
+                content.classList.remove('collapsed');
+                if (toggleIcon) toggleIcon.innerHTML = '▼';
+            } else {
+                content.classList.add('collapsed');
+                if (toggleIcon) toggleIcon.innerHTML = '▶';
+            }
         }
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
-            refreshData();
-            startAutoRefresh();
+            refreshAllData();
+            loadServerStatus();
+            // Auto-refresh every 60 seconds
+            setInterval(refreshAllData, 60000);
+            setInterval(loadServerStatus, 60000);
         });
     </script>
 </body>
