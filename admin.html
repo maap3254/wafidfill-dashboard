@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WafidFill - System Dashboard</title>
+    <title>WafidFill - Admin Dashboard</title>
     <style>
         * {
             margin: 0;
@@ -41,20 +41,24 @@
             font-size: 1rem;
         }
 
-        /* Stats Grid */
+        /* Stats Grid - Only Total Users and Active Users */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: repeat(2, 1fr);
             gap: 20px;
             margin-bottom: 30px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
         }
 
         .stat-card {
             background: white;
             border-radius: 20px;
-            padding: 20px;
+            padding: 30px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.1);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
+            text-align: center;
         }
 
         .stat-card:hover {
@@ -63,36 +67,24 @@
         }
 
         .stat-title {
-            font-size: 0.85rem;
+            font-size: 0.9rem;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 2px;
             color: #666;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
+            font-weight: 600;
         }
 
         .stat-value {
-            font-size: 2rem;
+            font-size: 3rem;
             font-weight: bold;
             color: #333;
         }
 
-        .stat-unit {
-            font-size: 0.9rem;
-            color: #999;
-            margin-left: 5px;
+        .stat-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
         }
-
-        .stat-trend {
-            font-size: 0.8rem;
-            margin-top: 10px;
-            padding: 5px 10px;
-            border-radius: 20px;
-            display: inline-block;
-        }
-
-        .trend-up { background: #d4edda; color: #155724; }
-        .trend-down { background: #f8d7da; color: #721c24; }
-        .trend-neutral { background: #e2e3e5; color: #383d41; }
 
         /* Dashboard Sections */
         .dashboard-section {
@@ -205,6 +197,60 @@
             word-break: break-all;
         }
 
+        /* Chart Container */
+        .chart-container {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .chart-title {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .progress-bar {
+            background: #e9ecef;
+            border-radius: 10px;
+            height: 30px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            height: 100%;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 10px;
+            color: white;
+            font-size: 0.8rem;
+            font-weight: bold;
+            transition: width 0.5s ease;
+        }
+
+        .stats-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .stats-label {
+            font-weight: 600;
+            color: #555;
+        }
+
+        .stats-number {
+            font-weight: bold;
+            color: #667eea;
+        }
+
         /* Loading States */
         .loading {
             text-align: center;
@@ -250,10 +296,18 @@
             background: #764ba2;
         }
 
+        .last-updated {
+            text-align: center;
+            color: rgba(255,255,255,0.7);
+            margin-top: 20px;
+            font-size: 0.8rem;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .stats-grid {
-                grid-template-columns: repeat(2, 1fr);
+                grid-template-columns: 1fr;
+                max-width: 100%;
             }
             .data-table {
                 font-size: 0.8rem;
@@ -267,42 +321,44 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>📊 WafidFill System Dashboard</h1>
-            <p>Real-time analytics & monitoring for your passport autofill extension</p>
+            <h1>📊 WafidFill Admin Dashboard</h1>
+            <p>Real-time user analytics & system monitoring</p>
         </div>
 
-        <!-- Stats Grid -->
-        <div class="stats-grid" id="statsGrid">
+        <!-- Stats Grid - Only Total Users and Active Users -->
+        <div class="stats-grid">
             <div class="stat-card">
-                <div class="stat-title">Total Users</div>
+                <div class="stat-icon">👥</div>
+                <div class="stat-title">TOTAL USERS</div>
                 <div class="stat-value" id="totalUsers">--</div>
             </div>
             <div class="stat-card">
-                <div class="stat-title">Active Users</div>
+                <div class="stat-icon">✅</div>
+                <div class="stat-title">ACTIVE USERS</div>
                 <div class="stat-value" id="activeUsers">--</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-title">Total Points</div>
-                <div class="stat-value" id="totalPoints">--</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-title">Active Refills</div>
-                <div class="stat-value" id="activeRefills">--</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-title">Total Payments</div>
-                <div class="stat-value" id="totalPayments">--</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-title">Total Referrals</div>
-                <div class="stat-value" id="totalReferrals">--</div>
             </div>
         </div>
 
-        <!-- Users Section -->
-        <div class="dashboard-section" id="usersSection">
+        <!-- User Engagement Section -->
+        <div class="dashboard-section">
+            <div class="section-header" onclick="toggleSection('engagementContent')">
+                <h2>📈 User Engagement</h2>
+                <span class="toggle-icon" id="engagementToggle">▼</span>
+            </div>
+            <div class="section-content" id="engagementContent">
+                <div id="engagementStats">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        Loading engagement data...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Users List Section -->
+        <div class="dashboard-section">
             <div class="section-header" onclick="toggleSection('usersContent')">
-                <h2>👥 Recent Users</h2>
+                <h2>👥 All Users</h2>
                 <span class="toggle-icon" id="usersToggle">▼</span>
             </div>
             <div class="section-content" id="usersContent">
@@ -312,57 +368,67 @@
                 </div>
                 <table class="data-table" id="usersTable" style="display: none;">
                     <thead>
-                        <tr><th>Extension ID</th><th>Email</th><th>Phone</th><th>Points</th><th>Status</th><th>Created</th></tr>
+                        <tr><th>Extension ID</th><th>Email</th><th>Phone</th><th>Points</th><th>Status</th><th>Registered</th><th>Last Active</th></tr>
                     </thead>
                     <tbody id="usersBody"></tbody>
                 </table>
             </div>
         </div>
 
-        <!-- Active Refills Section -->
-        <div class="dashboard-section" id="refillsSection">
-            <div class="section-header" onclick="toggleSection('refillsContent')">
-                <h2>🔄 Active Refills</h2>
-                <span class="toggle-icon" id="refillsToggle">▼</span>
-            </div>
-            <div class="section-content" id="refillsContent">
-                <div class="loading" id="refillsLoading">
-                    <div class="spinner"></div>
-                    Loading active refills...
-                </div>
-                <table class="data-table" id="refillsTable" style="display: none;">
-                    <thead>
-                        <tr><th>Extension ID</th><th>Passport</th><th>Remaining</th><th>Refills</th><th>Status</th><th>Next Country</th></tr>
-                    </thead>
-                    <tbody id="refillsBody"></tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Recent Payments Section -->
-        <div class="dashboard-section" id="paymentsSection">
+        <!-- Payments Summary Section -->
+        <div class="dashboard-section">
             <div class="section-header" onclick="toggleSection('paymentsContent')">
-                <h2>💰 Recent Payments</h2>
+                <h2>💰 Payment Summary</h2>
                 <span class="toggle-icon" id="paymentsToggle">▼</span>
             </div>
             <div class="section-content" id="paymentsContent">
                 <div class="loading" id="paymentsLoading">
                     <div class="spinner"></div>
-                    Loading payments...
+                    Loading payment data...
                 </div>
-                <table class="data-table" id="paymentsTable" style="display: none;">
+                <div id="paymentSummary" style="display: none;"></div>
+            </div>
+        </div>
+
+        <!-- Recent Payments Section -->
+        <div class="dashboard-section">
+            <div class="section-header" onclick="toggleSection('recentPaymentsContent')">
+                <h2>💰 Recent Transactions</h2>
+                <span class="toggle-icon" id="recentPaymentsToggle">▼</span>
+            </div>
+            <div class="section-content" id="recentPaymentsContent">
+                <div class="loading" id="recentPaymentsLoading">
+                    <div class="spinner"></div>
+                    Loading recent payments...
+                </div>
+                <table class="data-table" id="recentPaymentsTable" style="display: none;">
                     <thead>
                         <tr><th>Transaction ID</th><th>Extension ID</th><th>Points</th><th>Amount</th><th>Method</th><th>Status</th><th>Date</th></tr>
                     </thead>
-                    <tbody id="paymentsBody"></tbody>
+                    <tbody id="recentPaymentsBody"></tbody>
                 </table>
             </div>
         </div>
 
+        <!-- Referral Stats Section -->
+        <div class="dashboard-section">
+            <div class="section-header" onclick="toggleSection('referralContent')">
+                <h2>🎁 Referral Program</h2>
+                <span class="toggle-icon" id="referralToggle">▼</span>
+            </div>
+            <div class="section-content" id="referralContent">
+                <div class="loading" id="referralLoading">
+                    <div class="spinner"></div>
+                    Loading referral data...
+                </div>
+                <div id="referralStats" style="display: none;"></div>
+            </div>
+        </div>
+
         <!-- API Key Stats Section -->
-        <div class="dashboard-section" id="apiKeysSection">
+        <div class="dashboard-section">
             <div class="section-header" onclick="toggleSection('apiKeysContent')">
-                <h2>🔑 API Key Statistics</h2>
+                <h2>🔑 API Key Performance</h2>
                 <span class="toggle-icon" id="apiKeysToggle">▼</span>
             </div>
             <div class="section-content" id="apiKeysContent">
@@ -374,28 +440,8 @@
             </div>
         </div>
 
-        <!-- Unlimited Plans Section -->
-        <div class="dashboard-section" id="unlimitedSection">
-            <div class="section-header" onclick="toggleSection('unlimitedContent')">
-                <h2>⭐ Unlimited Plans</h2>
-                <span class="toggle-icon" id="unlimitedToggle">▼</span>
-            </div>
-            <div class="section-content" id="unlimitedContent">
-                <div class="loading" id="unlimitedLoading">
-                    <div class="spinner"></div>
-                    Loading unlimited plans...
-                </div>
-                <table class="data-table" id="unlimitedTable" style="display: none;">
-                    <thead>
-                        <tr><th>Extension ID</th><th>Plan Type</th><th>Expires</th><th>Time Remaining</th><th>Usage Count</th></tr>
-                    </thead>
-                    <tbody id="unlimitedBody"></tbody>
-                </table>
-            </div>
-        </div>
-
         <!-- Server Status Section -->
-        <div class="dashboard-section" id="serverSection">
+        <div class="dashboard-section">
             <div class="section-header" onclick="toggleSection('serverContent')">
                 <h2>🖥️ Server Status</h2>
                 <span class="toggle-icon" id="serverToggle">▼</span>
@@ -408,6 +454,8 @@
                 <div id="serverStatus" style="display: none;"></div>
             </div>
         </div>
+
+        <div class="last-updated" id="lastUpdated">Last updated: --</div>
     </div>
 
     <button class="refresh-btn" onclick="refreshAllData()">⟳</button>
@@ -415,8 +463,6 @@
     <script>
         // Configuration
         const API_URL = 'https://artful-kingfisher-32.convex.site/api';
-        // For admin endpoints, you might need authentication
-        // This dashboard assumes you have read access to these queries
         
         // Helper function to make API calls
         async function callAPI(action, data = {}) {
@@ -441,23 +487,10 @@
             return new Date(timestamp).toLocaleString();
         }
 
-        // Format remaining time
-        function formatRemaining(seconds) {
-            if (!seconds) return '0s';
-            const mins = Math.floor(seconds / 60);
-            const secs = seconds % 60;
-            return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
-        }
-
-        // Format time remaining for unlimited plans
-        function formatTimeRemaining(expiry) {
-            if (!expiry) return 'N/A';
-            const remaining = expiry - Date.now();
-            if (remaining <= 0) return 'Expired';
-            const days = Math.floor(remaining / (1000 * 60 * 60 * 24));
-            const hours = Math.floor((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            if (days > 0) return `${days}d ${hours}h`;
-            return `${hours}h`;
+        // Format short date
+        function formatShortDate(timestamp) {
+            if (!timestamp) return 'N/A';
+            return new Date(timestamp).toLocaleDateString();
         }
 
         // Load all data
@@ -465,45 +498,101 @@
             await Promise.all([
                 loadStats(),
                 loadUsers(),
-                loadActiveRefills(),
-                loadPayments(),
+                loadPaymentSummary(),
+                loadRecentPayments(),
+                loadReferralStats(),
                 loadApiKeyStats(),
-                loadUnlimitedPlans(),
-                loadServerStatus()
+                loadServerStatus(),
+                loadEngagementStats()
             ]);
+            document.getElementById('lastUpdated').innerHTML = `Last updated: ${new Date().toLocaleString()}`;
         }
 
-        // Load stats
+        // Load stats (Total Users and Active Users only)
         async function loadStats() {
             try {
-                // Try to get stats from server
                 const result = await callAPI('getServerStatus');
-                if (result.success) {
-                    document.getElementById('totalUsers').textContent = result.stats?.totalUsers || '0';
-                    document.getElementById('activeUsers').textContent = result.stats?.activeUsers || '0';
-                    document.getElementById('totalPoints').textContent = result.stats?.totalPoints || '0';
-                }
-                
-                // Get active refills count
-                const refillsResult = await callAPI('getAllActiveRefills');
-                if (refillsResult.success) {
-                    document.getElementById('activeRefills').textContent = refillsResult.count || '0';
-                }
-                
-                // Get payments count
-                const paymentsResult = await callAPI('getAllPayments');
-                if (paymentsResult.success) {
-                    document.getElementById('totalPayments').textContent = paymentsResult.count || '0';
-                }
-                
-                // Get referrals count
-                const referralsResult = await callAPI('getAllReferrals');
-                if (referralsResult.success) {
-                    document.getElementById('totalReferrals').textContent = referralsResult.count || '0';
+                if (result.success && result.stats) {
+                    document.getElementById('totalUsers').textContent = result.stats.totalUsers || '0';
+                    document.getElementById('activeUsers').textContent = result.stats.activeUsers || '0';
+                } else {
+                    // Fallback: Try to get users directly
+                    const usersResult = await callAPI('getAllUsers');
+                    if (usersResult.success && usersResult.users) {
+                        const total = usersResult.users.length;
+                        const active = usersResult.users.filter(u => u.status === 'active').length;
+                        document.getElementById('totalUsers').textContent = total;
+                        document.getElementById('activeUsers').textContent = active;
+                    }
                 }
             } catch (error) {
                 console.error('Error loading stats:', error);
                 document.getElementById('totalUsers').textContent = 'Error';
+                document.getElementById('activeUsers').textContent = 'Error';
+            }
+        }
+
+        // Load engagement stats
+        async function loadEngagementStats() {
+            const container = document.getElementById('engagementStats');
+            
+            try {
+                const usersResult = await callAPI('getAllUsers');
+                
+                if (usersResult.success && usersResult.users) {
+                    const users = usersResult.users;
+                    const total = users.length;
+                    const active = users.filter(u => u.status === 'active').length;
+                    const pending = users.filter(u => u.status === 'pending').length;
+                    const totalPoints = users.reduce((sum, u) => sum + (u.points || 0), 0);
+                    const avgPoints = total > 0 ? Math.round(totalPoints / total) : 0;
+                    const activeRate = total > 0 ? Math.round((active / total) * 100) : 0;
+                    
+                    container.innerHTML = `
+                        <div class="chart-container">
+                            <div class="chart-title">Active Users Rate</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${activeRate}%">${activeRate}%</div>
+                            </div>
+                        </div>
+                        
+                        <div class="chart-container">
+                            <div class="chart-title">User Status Distribution</div>
+                            <div class="stats-row">
+                                <span class="stats-label">✅ Active Users</span>
+                                <span class="stats-number">${active}</span>
+                            </div>
+                            <div class="stats-row">
+                                <span class="stats-label">⏳ Pending Users</span>
+                                <span class="stats-number">${pending}</span>
+                            </div>
+                            <div class="stats-row">
+                                <span class="stats-label">📊 Total Users</span>
+                                <span class="stats-number">${total}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="chart-container">
+                            <div class="chart-title">Points Statistics</div>
+                            <div class="stats-row">
+                                <span class="stats-label">💰 Total Points Distributed</span>
+                                <span class="stats-number">${totalPoints.toLocaleString()}</span>
+                            </div>
+                            <div class="stats-row">
+                                <span class="stats-label">⭐ Average Points per User</span>
+                                <span class="stats-number">${avgPoints.toLocaleString()}</span>
+                            </div>
+                            <div class="stats-row">
+                                <span class="stats-label">🏆 Users with Points > 0</span>
+                                <span class="stats-number">${users.filter(u => (u.points || 0) > 0).length}</span>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = '<div class="loading">No engagement data available</div>';
+                }
+            } catch (error) {
+                container.innerHTML = `<div class="loading">Error loading engagement data: ${error.message}</div>`;
             }
         }
 
@@ -514,23 +603,24 @@
             const tbody = document.getElementById('usersBody');
             
             try {
-                const result = await callAPI('getAllUsers', { limit: 20 });
+                const result = await callAPI('getAllUsers', { limit: 50 });
                 
                 if (result.success && result.users && result.users.length > 0) {
                     tbody.innerHTML = result.users.map(user => `
                         <tr>
-                            <td><code>${user.extensionId?.substring(0, 20)}...</code></td>
+                            <td><code>${user.extensionId?.substring(0, 16)}...</code></td>
                             <td>${user.userEmail || 'N/A'}</td>
                             <td>${user.userPhone || 'N/A'}</td>
                             <td><strong>${user.points || 0}</strong></td>
                             <td><span class="badge badge-${user.status === 'active' ? 'success' : 'warning'}">${user.status}</span></td>
-                            <td>${formatDate(user.createdDate)}</td>
+                            <td>${formatShortDate(user.createdDate)}</td>
+                            <td>${user.lastAccess ? formatShortDate(user.lastAccess) : 'N/A'}</td>
                         </tr>
                     `).join('');
                     loading.style.display = 'none';
                     table.style.display = 'table';
                 } else {
-                    tbody.innerHTML = '<tr><td colspan="6">No users found</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="7">No users found</td></tr>';
                     loading.style.display = 'none';
                     table.style.display = 'table';
                 }
@@ -539,43 +629,63 @@
             }
         }
 
-        // Load active refills
-        async function loadActiveRefills() {
-            const loading = document.getElementById('refillsLoading');
-            const table = document.getElementById('refillsTable');
-            const tbody = document.getElementById('refillsBody');
+        // Load payment summary
+        async function loadPaymentSummary() {
+            const loading = document.getElementById('paymentsLoading');
+            const container = document.getElementById('paymentSummary');
             
             try {
-                const result = await callAPI('getAllActiveRefills');
+                const result = await callAPI('getAllPayments');
                 
-                if (result.success && result.refills && result.refills.length > 0) {
-                    tbody.innerHTML = result.refills.map(refill => `
-                        <tr>
-                            <td><code>${refill.extensionId?.substring(0, 15)}...</code></td>
-                            <td><code>${refill.passportNumber}</code></td>
-                            <td>${formatRemaining(refill.remainingSeconds)}</td>
-                            <td>${refill.refillCount}/${refill.totalRefills}</td>
-                            <td><span class="badge badge-${refill.status === 'active' ? 'success' : 'warning'}">${refill.status}</span></td>
-                            <td>${refill.nextCountry}</td>
-                        </tr>
-                    `).join('');
+                if (result.success && result.payments) {
+                    const payments = result.payments;
+                    const completed = payments.filter(p => p.status === 'completed');
+                    const totalRevenue = completed.reduce((sum, p) => sum + (p.amount || 0), 0);
+                    const totalPointsSold = completed.reduce((sum, p) => sum + (p.points || 0), 0);
+                    const pendingCount = payments.filter(p => p.status === 'pending').length;
+                    
+                    container.innerHTML = `
+                        <div class="chart-container">
+                            <div class="chart-title">Revenue Summary</div>
+                            <div class="stats-row">
+                                <span class="stats-label">💰 Total Revenue</span>
+                                <span class="stats-number">$${totalRevenue.toFixed(2)}</span>
+                            </div>
+                            <div class="stats-row">
+                                <span class="stats-label">⭐ Total Points Sold</span>
+                                <span class="stats-number">${totalPointsSold.toLocaleString()}</span>
+                            </div>
+                            <div class="stats-row">
+                                <span class="stats-label">📊 Completed Transactions</span>
+                                <span class="stats-number">${completed.length}</span>
+                            </div>
+                            <div class="stats-row">
+                                <span class="stats-label">⏳ Pending Transactions</span>
+                                <span class="stats-number">${pendingCount}</span>
+                            </div>
+                            <div class="stats-row">
+                                <span class="stats-label">💳 Average Order Value</span>
+                                <span class="stats-number">${completed.length > 0 ? '$' + (totalRevenue / completed.length).toFixed(2) : '$0'}</span>
+                            </div>
+                        </div>
+                    `;
                     loading.style.display = 'none';
-                    table.style.display = 'table';
+                    container.style.display = 'block';
                 } else {
-                    tbody.innerHTML = '<tr><td colspan="6">No active refills</td></tr>';
+                    container.innerHTML = '<div class="loading">No payment data available</div>';
                     loading.style.display = 'none';
-                    table.style.display = 'table';
+                    container.style.display = 'block';
                 }
             } catch (error) {
-                loading.innerHTML = `<div class="error">Error loading refills: ${error.message}</div>`;
+                loading.innerHTML = `<div class="error">Error loading payment summary: ${error.message}</div>`;
             }
         }
 
-        // Load payments
-        async function loadPayments() {
-            const loading = document.getElementById('paymentsLoading');
-            const table = document.getElementById('paymentsTable');
-            const tbody = document.getElementById('paymentsBody');
+        // Load recent payments
+        async function loadRecentPayments() {
+            const loading = document.getElementById('recentPaymentsLoading');
+            const table = document.getElementById('recentPaymentsTable');
+            const tbody = document.getElementById('recentPaymentsBody');
             
             try {
                 const result = await callAPI('getAllPayments', { limit: 20 });
@@ -583,13 +693,13 @@
                 if (result.success && result.payments && result.payments.length > 0) {
                     tbody.innerHTML = result.payments.map(payment => `
                         <tr>
-                            <td><code>${payment.transactionId}</code></td>
-                            <td><code>${payment.extensionId?.substring(0, 15)}...</code></td>
+                            <td><code>${payment.transactionId?.substring(0, 12)}...</code></td>
+                            <td><code>${payment.extensionId?.substring(0, 12)}...</code></td>
                             <td><strong>${payment.points}</strong></td>
                             <td>$${payment.amount}</td>
-                            <td>${payment.method}</td>
+                            <td>${payment.method || 'Unknown'}</td>
                             <td><span class="badge badge-${payment.status === 'completed' ? 'success' : 'warning'}">${payment.status}</span></td>
-                            <td>${formatDate(payment.createdAt)}</td>
+                            <td>${formatShortDate(payment.createdAt)}</td>
                         </tr>
                     `).join('');
                     loading.style.display = 'none';
@@ -601,6 +711,52 @@
                 }
             } catch (error) {
                 loading.innerHTML = `<div class="error">Error loading payments: ${error.message}</div>`;
+            }
+        }
+
+        // Load referral stats
+        async function loadReferralStats() {
+            const loading = document.getElementById('referralLoading');
+            const container = document.getElementById('referralStats');
+            
+            try {
+                const result = await callAPI('getAllReferrals');
+                
+                if (result.success && result.referrals) {
+                    const referrals = result.referrals;
+                    const completed = referrals.filter(r => r.status === 'completed');
+                    const totalPointsAwarded = completed.reduce((sum, r) => sum + 20, 0);
+                    
+                    container.innerHTML = `
+                        <div class="chart-container">
+                            <div class="chart-title">Referral Program Statistics</div>
+                            <div class="stats-row">
+                                <span class="stats-label">🎁 Total Referrals</span>
+                                <span class="stats-number">${referrals.length}</span>
+                            </div>
+                            <div class="stats-row">
+                                <span class="stats-label">✅ Successful Referrals</span>
+                                <span class="stats-number">${completed.length}</span>
+                            </div>
+                            <div class="stats-row">
+                                <span class="stats-label">⭐ Points Awarded via Referrals</span>
+                                <span class="stats-number">${totalPointsAwarded.toLocaleString()}</span>
+                            </div>
+                            <div class="stats-row">
+                                <span class="stats-label">❌ Failed/Rejected Referrals</span>
+                                <span class="stats-number">${referrals.filter(r => r.status === 'rejected').length}</span>
+                            </div>
+                        </div>
+                    `;
+                    loading.style.display = 'none';
+                    container.style.display = 'block';
+                } else {
+                    container.innerHTML = '<div class="loading">No referral data available</div>';
+                    loading.style.display = 'none';
+                    container.style.display = 'block';
+                }
+            } catch (error) {
+                loading.innerHTML = `<div class="error">Error loading referral stats: ${error.message}</div>`;
             }
         }
 
@@ -622,10 +778,10 @@
                         html += `
                             <div class="api-key-card" style="border-left-color: ${colors[key] || '#667eea'}">
                                 <h4>API Key ${key}</h4>
-                                <div class="key-value">Total: ${stats.total} requests</div>
-                                <div class="key-value">Success: ${stats.success} (${successRate}%)</div>
-                                <div class="key-value">Failures: ${stats.failures}</div>
-                                <div class="key-value">Auto-rotated: ${stats.autoRotated || 0}</div>
+                                <div class="key-value">📊 Total: ${stats.total} requests</div>
+                                <div class="key-value">✅ Success: ${stats.success} (${successRate}%)</div>
+                                <div class="key-value">❌ Failures: ${stats.failures}</div>
+                                <div class="key-value">🔄 Auto-rotated: ${stats.autoRotated || 0}</div>
                             </div>
                         `;
                     }
@@ -635,43 +791,12 @@
                     loading.style.display = 'none';
                     container.style.display = 'block';
                 } else {
-                    container.innerHTML = '<div>No API key stats available</div>';
+                    container.innerHTML = '<div class="loading">No API key stats available</div>';
                     loading.style.display = 'none';
                     container.style.display = 'block';
                 }
             } catch (error) {
                 loading.innerHTML = `<div class="error">Error loading API stats: ${error.message}</div>`;
-            }
-        }
-
-        // Load unlimited plans
-        async function loadUnlimitedPlans() {
-            const loading = document.getElementById('unlimitedLoading');
-            const table = document.getElementById('unlimitedTable');
-            const tbody = document.getElementById('unlimitedBody');
-            
-            try {
-                const result = await callAPI('getAllUnlimitedPlans');
-                
-                if (result.success && result.plans && result.plans.length > 0) {
-                    tbody.innerHTML = result.plans.map(plan => `
-                        <tr>
-                            <td><code>${plan.extensionId?.substring(0, 20)}...</code></td>
-                            <td><span class="badge badge-primary">${plan.unlimitedPlanText || plan.unlimitedPlan}</span></td>
-                            <td>${formatDate(plan.unlimitedPlanExpiry)}</td>
-                            <td>${formatTimeRemaining(plan.unlimitedPlanExpiry)}</td>
-                            <td>${plan.usageCount || 0}</td>
-                        </tr>
-                    `).join('');
-                    loading.style.display = 'none';
-                    table.style.display = 'table';
-                } else {
-                    tbody.innerHTML = '<tr><td colspan="5">No active unlimited plans</td></tr>';
-                    loading.style.display = 'none';
-                    table.style.display = 'table';
-                }
-            } catch (error) {
-                loading.innerHTML = `<div class="error">Error loading unlimited plans: ${error.message}</div>`;
             }
         }
 
@@ -688,19 +813,19 @@
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
                             <div style="background: #f8f9fa; padding: 15px; border-radius: 12px;">
                                 <div style="font-size: 0.85rem; color: #666;">Version</div>
-                                <div style="font-size: 1.5rem; font-weight: bold;">${result.version}</div>
+                                <div style="font-size: 1.3rem; font-weight: bold;">${result.version || '1.0.0'}</div>
                             </div>
                             <div style="background: #f8f9fa; padding: 15px; border-radius: 12px;">
                                 <div style="font-size: 0.85rem; color: #666;">Environment</div>
-                                <div style="font-size: 1rem;"><span class="badge badge-${result.environment === 'production' ? 'success' : 'warning'}">${result.environment}</span></div>
+                                <div><span class="badge badge-${result.environment === 'production' ? 'success' : 'warning'}">${result.environment || 'production'}</span></div>
                             </div>
                             <div style="background: #f8f9fa; padding: 15px; border-radius: 12px;">
-                                <div style="font-size: 0.85rem; color: #666;">Release Date</div>
-                                <div style="font-size: 0.9rem;">${formatDate(result.releaseDate)}</div>
+                                <div style="font-size: 0.85rem; color: #666;">Status</div>
+                                <div><span class="badge badge-success">🟢 Online</span></div>
                             </div>
                             <div style="background: #f8f9fa; padding: 15px; border-radius: 12px;">
-                                <div style="font-size: 0.85rem; color: #666;">Last Updated</div>
-                                <div style="font-size: 0.9rem;">${formatDate(result.timestamp)}</div>
+                                <div style="font-size: 0.85rem; color: #666;">Last Check</div>
+                                <div style="font-size: 0.8rem;">${new Date().toLocaleTimeString()}</div>
                             </div>
                         </div>
                     `;
@@ -730,12 +855,12 @@
             }
         }
 
-        // Auto-refresh every 30 seconds
+        // Auto-refresh every 60 seconds
         let autoRefreshInterval;
         
         function startAutoRefresh() {
             if (autoRefreshInterval) clearInterval(autoRefreshInterval);
-            autoRefreshInterval = setInterval(refreshAllData, 30000);
+            autoRefreshInterval = setInterval(refreshAllData, 60000);
         }
 
         // Initialize
